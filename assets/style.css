@@ -1,0 +1,517 @@
+:root {
+  --slide-bg: #000;
+  --slide-fg: #fff;
+  --slide-accent: #7b42bc; /* Terraform purple */
+  --slide-accent-2: #ff6a00;
+  --slide-muted: #8a8a8a;
+  --slide-code-bg: #0d0d0d;
+  --slide-border: rgba(255, 255, 255, 0.12);
+  --slide-font: -apple-system, 'Hiragino Sans', 'Noto Sans JP', system-ui, sans-serif;
+  /* macOS には凸版文久見出しゴシックが入っている。ない環境では本文フォントに落ちる */
+  --slide-display-font: 'Toppan Bunkyu Midashi Gothic', '凸版文久見出しゴシック', var(--slide-font);
+  --slide-mono: 'SF Mono', Menlo, Consolas, monospace;
+}
+
+/* 1280x720 で 16px。画面の短い辺に合わせて rem ごと拡大縮小する */
+html {
+  font-size: max(16px, min(1.25vw, 2.223vh));
+  touch-action: manipulation;
+}
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+body {
+  background: var(--slide-bg);
+  color: var(--slide-fg);
+  font-family: var(--slide-font);
+  overflow: hidden;
+}
+#deck {
+  position: fixed;
+  inset: 0;
+}
+
+/* ---------- slide ---------- */
+
+.slide {
+  position: absolute;
+  inset: 0;
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  padding: 6vh 9vw;
+  box-sizing: border-box;
+  overflow: auto;
+  /* 日本語を文節で改行する（Chrome 119+） */
+  word-break: auto-phrase;
+}
+.slide pre {
+  word-break: normal;
+}
+.slide.active {
+  display: flex;
+  animation: slide-in 0.25s ease;
+}
+@keyframes slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.slide > :first-child {
+  margin-top: 0;
+}
+
+.slide h1 {
+  font-family: var(--slide-display-font);
+  font-size: calc(clamp(2.2rem, 5vw, 3.6rem) * var(--slide-size, 1));
+  line-height: 1.15;
+  margin: 0 0 1.5rem;
+}
+.slide h2 {
+  font-family: var(--slide-display-font);
+  font-size: calc(clamp(1.8rem, 4vw, 2.6rem) * var(--slide-size, 1));
+  line-height: 1.2;
+  margin: 0 0 2.2rem;
+}
+.slide h3 {
+  font-size: calc(clamp(1.4rem, 3vw, 1.9rem) * var(--slide-size, 1));
+  margin: 0 0 1rem;
+}
+.slide p,
+.slide li {
+  font-size: calc(clamp(1.1rem, 2.2vw, 1.5rem) * var(--slide-size, 1));
+  line-height: 1.6;
+}
+.slide ul,
+.slide ol {
+  padding-left: 1.4em;
+  margin: 0 0 1rem;
+}
+.slide li {
+  margin: 0.35em 0;
+}
+.slide li > ul {
+  margin: 0;
+}
+.slide li li {
+  font-size: 0.85em;
+  color: var(--slide-muted);
+}
+.slide a {
+  color: inherit;
+  text-underline-offset: 0.15em;
+}
+/* 太字 = アクセントカラー */
+.slide strong {
+  font-weight: 700;
+  color: var(--slide-accent-2);
+}
+.slide strong code {
+  color: inherit;
+}
+.slide .arrow {
+  color: var(--slide-muted);
+  font-family: 'Hiragino Sans', system-ui, sans-serif;
+  font-weight: 800;
+}
+.slide img {
+  max-height: 58vh;
+  max-width: 100%;
+  object-fit: contain;
+  display: block;
+  margin: 1rem auto;
+  border-radius: 6px;
+}
+.img-caption {
+  display: block;
+  text-align: center;
+  margin-top: 0.2rem;
+  font-size: 0.85rem;
+  color: var(--slide-muted);
+}
+
+/* `::wide::` 左右の余白を詰める */
+.slide.wide {
+  padding-left: 3vw;
+  padding-right: 3vw;
+}
+
+/* `::right::` 2 カラム */
+.slide .cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4vw;
+  align-items: start;
+  width: 100%;
+}
+.slide .cols > * > :first-child {
+  margin-top: 0;
+}
+.slide .cols pre {
+  margin-top: 0;
+}
+
+/* `::center::` 1 枚 1 メッセージ */
+.slide.center {
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+.slide.center h1,
+.slide.center h2 {
+  margin-bottom: 0.4em;
+}
+.slide.center p {
+  font-family: var(--slide-display-font);
+  font-size: calc(clamp(1.8rem, 4.5vw, 3.5rem) * var(--slide-size, 1));
+  font-weight: 600;
+  line-height: 1.5;
+  margin: 0.2em 0;
+}
+.slide.center ul,
+.slide.center ol {
+  text-align: left;
+}
+.slide.center pre {
+  text-align: left;
+  max-width: 100%;
+}
+
+/* `-# ` で始まる段落は小さい注釈 */
+.slide .note,
+.slide.center p.note {
+  font-family: var(--slide-font);
+  font-weight: 400;
+  color: var(--slide-muted);
+}
+.slide .note {
+  font-size: calc(clamp(0.95rem, 1.8vw, 1.25rem) * var(--slide-size, 1));
+}
+.slide.center p.note {
+  font-size: clamp(1.2rem, 2.6vw, 2.1rem);
+}
+
+/* `::title::` 表紙 */
+.slide.title {
+  padding-bottom: 8vh;
+}
+.slide.title h1 {
+  margin-top: auto;
+  font-size: calc(clamp(2.6rem, 7vw, 5.2rem) * var(--slide-size, 1));
+  line-height: 1.2;
+}
+.slide.title p {
+  font-size: clamp(1.3rem, 2.6vw, 1.9rem);
+  font-weight: 600;
+  margin: 0.2em 0;
+}
+.slide.title p:last-child {
+  margin-top: auto;
+  font-size: clamp(1rem, 1.8vw, 1.3rem);
+  color: var(--slide-muted);
+}
+
+/* `::bg=white::` 明るい背景 */
+.slide.light {
+  --slide-fg: #1f1f1f;
+  --slide-accent-2: #e85d00;
+  --slide-muted: #777;
+  --slide-border: rgba(0, 0, 0, 0.12);
+  --slide-code-bg: #f0f0f0;
+  color: var(--slide-fg);
+}
+
+.slide blockquote {
+  border-left: 4px solid var(--slide-accent-2);
+  margin: 0 0 1rem;
+  padding: 0.2rem 0 0.2rem 1.2rem;
+  color: var(--slide-muted);
+}
+
+.slide table {
+  border-collapse: collapse;
+  font-size: calc(clamp(1rem, 2vw, 1.35rem) * var(--slide-size, 1));
+  margin: 0 auto 1rem 0;
+}
+.slide.center table {
+  margin: 0 auto;
+}
+.slide th,
+.slide td {
+  padding: 0.5em 1.2em;
+  border-bottom: 1px solid var(--slide-border);
+  text-align: left;
+}
+.slide th {
+  color: var(--slide-muted);
+  font-weight: 600;
+}
+.slide td.num,
+.slide th.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- code ---------- */
+
+.slide pre {
+  position: relative;
+  font-family: var(--slide-mono);
+  font-size: calc(clamp(0.8rem, 1.35vw, 1rem) * var(--slide-size, 1));
+  background: var(--slide-code-bg);
+  border: 1px solid var(--slide-border);
+  padding: 1.2rem 1.5rem;
+  border-radius: 10px;
+  overflow: auto;
+  max-height: 64vh;
+  line-height: 1.5;
+  margin: 0 0 1rem;
+}
+.slide pre code {
+  display: block;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.slide pre[data-lang]::before {
+  content: attr(data-lang);
+  position: absolute;
+  top: 0.5rem;
+  right: 0.8rem;
+  font-size: 0.7rem;
+  color: var(--slide-muted);
+  opacity: 0.6;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.slide :not(pre) > code {
+  font-family: var(--slide-mono);
+  background: rgba(127, 127, 127, 0.18);
+  padding: 0.1em 0.4em;
+  border-radius: 4px;
+  font-size: 0.9em;
+}
+
+/* ハイライト（atom-one-dark 寄り） */
+.hl-c {
+  color: #7f848e;
+  font-style: italic;
+}
+.hl-s {
+  color: #98c379;
+}
+.hl-k {
+  color: #c678dd;
+}
+.hl-n {
+  color: #d19a66;
+}
+.hl-f {
+  color: #61afef;
+}
+.hl-t {
+  color: #e5c07b;
+}
+.hl-i {
+  color: #56b6c2;
+}
+/* console */
+.hl-prompt {
+  color: var(--slide-accent-2);
+  user-select: none;
+}
+.hl-cmd {
+  color: #fff;
+  font-weight: 600;
+}
+.light .hl-cmd {
+  color: #1f1f1f;
+}
+.hl-out {
+  color: #abb2bf;
+}
+.hl-err {
+  color: #ef5350;
+  font-weight: 600;
+}
+.hl-ok {
+  color: #98c379;
+}
+/* `!! ` を付けた行は行全体を帯でハイライト */
+.hl-mark {
+  display: inline-block;
+  width: calc(100% + 3rem);
+  margin: 0 -1.5rem;
+  padding: 0 1.5rem;
+  box-sizing: border-box;
+  background: rgba(255, 106, 0, 0.16);
+  box-shadow: inset 3px 0 0 var(--slide-accent-2);
+}
+
+/* ---------- chrome ---------- */
+
+#progress {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  height: 4px;
+  width: 0;
+  background: var(--slide-accent);
+  transition: width 0.2s ease;
+  z-index: 10;
+}
+#counter,
+#timer,
+#hint {
+  font-family: system-ui, -apple-system, 'Hiragino Sans', sans-serif;
+  position: fixed;
+  color: var(--slide-muted);
+  font-variant-numeric: tabular-nums;
+  z-index: 10;
+}
+#counter {
+  bottom: 12px;
+  right: 18px;
+  font-size: 0.9rem;
+}
+#timer {
+  bottom: 34px;
+  right: 18px;
+  font-size: 0.95rem;
+}
+#hint {
+  bottom: 12px;
+  left: 18px;
+  font-size: 0.8rem;
+  opacity: 0.6;
+}
+:fullscreen #hint {
+  display: none;
+}
+@media (pointer: coarse) {
+  #hint {
+    display: none;
+  }
+}
+
+/* ---------- overview（o / Esc） ---------- */
+
+#overview {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: none;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  justify-content: center;
+  gap: 20px;
+  padding: 28px;
+  box-sizing: border-box;
+  overflow-y: auto;
+  background: #29292c;
+}
+body.overview #overview {
+  display: flex;
+}
+body.overview #deck,
+body.overview #progress,
+body.overview #counter,
+body.overview #timer,
+body.overview #hint {
+  display: none;
+}
+.ov-item {
+  cursor: pointer;
+}
+.ov-frame {
+  position: relative;
+  overflow: hidden;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: var(--slide-bg);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+}
+.ov-item.current .ov-frame {
+  outline: 3px solid var(--slide-accent);
+  outline-offset: 2px;
+}
+.ov-item:hover .ov-frame {
+  border-color: var(--slide-accent);
+}
+.ov-scale {
+  position: relative;
+  transform-origin: 0 0;
+}
+#overview .slide {
+  display: flex;
+  animation: none;
+  overflow: hidden;
+}
+.ov-num {
+  margin-top: 6px;
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--slide-muted);
+  font-variant-numeric: tabular-nums;
+}
+.ov-item.current .ov-num {
+  color: var(--slide-fg);
+  font-weight: 600;
+}
+
+/* ---------- PDF（ブラウザの印刷 → PDF に保存） ---------- */
+
+@media print {
+  @page {
+    size: 1280px 720px;
+    margin: 0;
+  }
+  html {
+    font-size: 16px;
+  }
+  html,
+  body {
+    height: auto;
+    overflow: visible;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  #deck {
+    position: static;
+  }
+  .slide {
+    display: flex !important;
+    position: relative;
+    width: 1280px;
+    height: 720px;
+    padding: 43px 115px;
+    animation: none !important;
+    overflow: hidden;
+    break-after: page;
+    background: var(--slide-bg);
+  }
+  .slide.wide {
+    padding-left: 38px;
+    padding-right: 38px;
+  }
+  .slide.center p {
+    font-size: calc(3.5rem * var(--slide-size, 1));
+  }
+  .slide.title h1 {
+    font-size: calc(5.2rem * var(--slide-size, 1));
+  }
+  #progress,
+  #counter,
+  #timer,
+  #hint,
+  #overview {
+    display: none !important;
+  }
+}
