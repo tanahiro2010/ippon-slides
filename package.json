@@ -12,6 +12,14 @@
   ],
   "license": "MIT",
   "author": "tanahiro2010",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tanahiro2010/ippon-slides.git"
+  },
+  "homepage": "https://github.com/tanahiro2010/ippon-slides#readme",
+  "bugs": {
+    "url": "https://github.com/tanahiro2010/ippon-slides/issues"
+  },
   "type": "module",
   "bin": {
     "ippon": "bin/ippon.js"
