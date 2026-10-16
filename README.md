@@ -131,6 +131,19 @@ import { render, toPdf } from 'ippon-slides'
 const { html } = render(markdown, { baseDir: '.', outDir: 'dist' })
 ```
 
+型定義（`.d.ts`）も同梱しています。
+
+## 開発
+
+TypeScript で書いています。`src/` が Node 側、`src/client/deck.ts` がブラウザで動くナビゲーションです。
+
+```sh
+npm install
+npm run build      # dist/ と assets/deck.js を作る
+npm run typecheck
+npm test           # ビルドしてからテスト（テストの実行には Node 22.18+ が必要）
+```
+
 ## License
 
 MIT
