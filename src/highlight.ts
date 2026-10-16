@@ -1,10 +1,12 @@
 // コードのハイライト。1 行ずつ処理する（複数行にまたがるトークンは扱わない）。
 // 行頭の "!! " はその行の強調マーカー。
 
-export const esc = (s) =>
+export const esc = (s: string): string =>
   s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 
-function tokenize(line, rules) {
+type Rule = [RegExp, string | null]
+
+function tokenize(line: string, rules: Rule[]): string {
   let out = ''
   let rest = line
   outer: while (rest.length) {
@@ -16,7 +18,7 @@ function tokenize(line, rules) {
         continue outer
       }
     }
-    out += esc(rest[0])
+    out += esc(rest[0]!)
     rest = rest.slice(1)
   }
   return out
@@ -25,7 +27,7 @@ function tokenize(line, rules) {
 const HCL_KEYWORDS =
   'resource|data|variable|module|output|locals|terraform|provisioner|lifecycle|precondition|postcondition|backend|for|in|if|for_each|count|depends_on|when'
 
-const HCL = [
+const HCL: Rule[] = [
   [/^(#|\/\/).*/, 'hl-c'],
   [/^"(?:[^"\\]|\\.)*"/, 'hl-s'],
   [/^<<-?EOT/, 'hl-s'],
@@ -38,7 +40,7 @@ const HCL = [
   [/^[A-Za-z_][A-Za-z0-9_]*/, null],
 ]
 
-const SH = [
+const SH: Rule[] = [
   [/^#.*/, 'hl-c'],
   [/^"(?:[^"\\]|\\.)*"/, 'hl-s'],
   [/^'[^']*'/, 'hl-s'],
@@ -48,7 +50,7 @@ const SH = [
   [/^[A-Za-z_][A-Za-z0-9_]*/, null],
 ]
 
-const JSON_ = [
+const JSON_: Rule[] = [
   [/^"(?:[^"\\]|\\.)*"(?=\s*:)/, 'hl-t'],
   [/^"(?:[^"\\]|\\.)*"/, 'hl-s'],
   [/^(?:true|false|null)\b/, 'hl-n'],
@@ -58,7 +60,7 @@ const JSON_ = [
 const JS_KEYWORDS =
   'const|let|var|function|return|if|else|for|while|of|in|new|class|extends|import|from|export|default|async|await|try|catch|throw|type|interface|as'
 
-const JS = [
+const JS: Rule[] = [
   [/^\/\/.*/, 'hl-c'],
   [/^"(?:[^"\\]|\\.)*"/, 'hl-s'],
   [/^'(?:[^'\\]|\\.)*'/, 'hl-s'],
@@ -71,7 +73,7 @@ const JS = [
   [/^[A-Za-z_$][\w$]*/, null],
 ]
 
-const LANGS = {
+const LANGS: Record<string, Rule[]> = {
   hcl: HCL,
   tf: HCL,
   terraform: HCL,
@@ -88,15 +90,15 @@ const LANGS = {
   tsx: JS,
 }
 
-function consoleLine(line) {
+function consoleLine(line: string): string {
   const m = line.match(/^(\$ )(.*)$/)
-  if (m) return `<span class="hl-prompt">$ </span><span class="hl-cmd">${esc(m[2])}</span>`
+  if (m) return `<span class="hl-prompt">$ </span><span class="hl-cmd">${esc(m[2]!)}</span>`
   if (/(^|\s)(Error|panic)\b|^make: \*\*\*/.test(line)) return `<span class="hl-err">${esc(line)}</span>`
   if (/^(✅|Apply complete|Destroy complete)/.test(line)) return `<span class="hl-ok">${esc(line)}</span>`
   return `<span class="hl-out">${esc(line)}</span>`
 }
 
-export function highlight(code, lang = '') {
+export function highlight(code: string, lang = ''): string {
   const rules = LANGS[lang.toLowerCase()]
   return code
     .split('\n')

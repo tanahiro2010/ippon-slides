@@ -7,7 +7,7 @@ import { tmpdir } from 'node:os'
 import { delimiter, join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
-const CANDIDATES = {
+const CANDIDATES: Partial<Record<NodeJS.Platform, string[]>> = {
   darwin: [
     '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
     '/Applications/Chromium.app/Contents/MacOS/Chromium',
@@ -23,7 +23,7 @@ const CANDIDATES = {
   ],
 }
 
-function which(cmd) {
+function which(cmd: string): string | null {
   for (const dir of (process.env.PATH || '').split(delimiter)) {
     const p = join(dir, cmd)
     if (existsSync(p)) return p
@@ -32,7 +32,7 @@ function which(cmd) {
 }
 
 /** --browser-path → CHROME_PATH → よくある場所 の順に探す */
-export function findBrowser(explicit) {
+export function findBrowser(explicit?: string): string | null {
   if (explicit) return existsSync(explicit) ? explicit : null
   if (process.env.CHROME_PATH && existsSync(process.env.CHROME_PATH)) return process.env.CHROME_PATH
   for (const c of CANDIDATES[process.platform] || []) {
@@ -42,13 +42,16 @@ export function findBrowser(explicit) {
   return null
 }
 
+export interface PdfOptions {
+  /** 使うブラウザ。省略すると CHROME_PATH → よくある場所 の順に探す */
+  browserPath?: string
+}
+
 /**
- * @param {string} html  file:// URL の画像で組み立てた HTML
- * @param {string} out   出力する PDF のパス
- * @param {object} opts
- * @param {string} [opts.browserPath]
+ * @param html file:// URL の画像で組み立てた HTML
+ * @param out  出力する PDF のパス
  */
-export async function toPdf(html, out, { browserPath } = {}) {
+export async function toPdf(html: string, out: string, { browserPath }: PdfOptions = {}): Promise<void> {
   const browser = findBrowser(browserPath)
   if (!browser) {
     throw new Error(
@@ -73,10 +76,10 @@ export async function toPdf(html, out, { browserPath } = {}) {
       `--print-to-pdf=${out}`,
       pathToFileURL(src).href,
     ]
-    const stderr = await new Promise((ok, ng) => {
+    const stderr = await new Promise<string>((ok, ng) => {
       const p = spawn(browser, args, { stdio: ['ignore', 'ignore', 'pipe'] })
       let err = ''
-      p.stderr.on('data', (d) => (err += d))
+      p.stderr.on('data', (d: Buffer) => (err += d))
       p.on('error', ng)
       p.on('close', () => ok(err))
     })

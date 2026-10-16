@@ -3,20 +3,35 @@
 import { readFileSync } from 'node:fs'
 import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
-import { esc } from './highlight.js'
-import { parse } from './markdown.js'
+import { esc } from './highlight.ts'
+import { parse } from './markdown.ts'
 
 const assets = join(dirname(fileURLToPath(import.meta.url)), '..', 'assets')
 
 const EXTERNAL = /^(?:[a-z][a-z0-9+.-]*:|\/\/|#|\/)/i
+
+export interface RenderOptions {
+  /** 画像の相対パスの基準（= Markdown のあるディレクトリ） */
+  baseDir: string
+  /** 出力先ディレクトリ。省略すると画像は file:// URL になる */
+  outDir?: string
+  /** 追加の CSS（--css） */
+  css?: string
+}
+
+export interface RenderResult {
+  html: string
+  /** スライドの枚数 */
+  count: number
+}
 
 /**
  * 相対パスの画像を、出力先から見たパスに書き換える。
  *   - outDir を渡す → 出力先からの相対パス（HTML 用）
  *   - outDir なし   → file:// の絶対 URL（PDF の一時ファイル用）
  */
-function rewriteImages(html, baseDir, outDir) {
-  return html.replace(/(<img src=")([^"]+)(")/g, (all, pre, src, post) => {
+function rewriteImages(html: string, baseDir: string, outDir?: string): string {
+  return html.replace(/(<img src=")([^"]+)(")/g, (all, pre: string, src: string, post: string) => {
     if (EXTERNAL.test(src) || isAbsolute(src)) return all
     const abs = resolve(baseDir, decodeURI(src))
     const url = outDir ? encodeURI(relative(outDir, abs).split(sep).join('/')) : pathToFileURL(abs).href
@@ -24,15 +39,7 @@ function rewriteImages(html, baseDir, outDir) {
   })
 }
 
-/**
- * @param {string} md          Markdown
- * @param {object} opts
- * @param {string} opts.baseDir 画像の相対パスの基準（= Markdown のあるディレクトリ）
- * @param {string} [opts.outDir] 出力先ディレクトリ。省略すると画像は file:// URL になる
- * @param {string} [opts.css]   追加の CSS（--css）
- * @returns {{ html: string, count: number }}
- */
-export function render(md, { baseDir, outDir, css = '' }) {
+export function render(md: string, { baseDir, outDir, css = '' }: RenderOptions): RenderResult {
   const { meta, sections } = parse(md)
   const style = readFileSync(join(assets, 'style.css'), 'utf8') + (css ? `\n/* --css */\n${css}` : '')
   const script = readFileSync(join(assets, 'deck.js'), 'utf8')

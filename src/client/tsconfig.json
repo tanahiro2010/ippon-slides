@@ -1,0 +1,14 @@
+{
+  // ブラウザで動くナビゲーション。assets/deck.js に出力して HTML に埋め込む
+  "compilerOptions": {
+    "target": "ES2020",
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "types": [],
+    "strict": true,
+    "moduleDetection": "legacy",
+    "rootDir": ".",
+    "outDir": "../../assets",
+    "removeComments": false
+  },
+  "include": ["deck.ts"]
+}

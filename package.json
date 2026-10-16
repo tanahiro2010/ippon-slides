@@ -25,18 +25,25 @@
     "ippon": "bin/ippon.js"
   },
   "exports": {
-    ".": "./src/index.js"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
   },
+  "types": "./dist/index.d.ts",
   "files": [
     "bin",
-    "src",
+    "dist",
     "assets"
   ],
   "engines": {
     "node": ">=18.17"
   },
   "scripts": {
-    "test": "node --test"
+    "build": "tsc -p tsconfig.build.json && tsc -p src/client",
+    "typecheck": "tsc && tsc -p src/client --noEmit",
+    "test": "npm run build && node --test test/*.test.ts",
+    "prepack": "npm run build"
   },
   "devDependencies": {
     "@types/node": "^22.20.5",

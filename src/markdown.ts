@@ -7,9 +7,9 @@
 //   ```hcl                    コード（hcl / console / sh / json / js / ts）
 //   !! 行                     コードの行を強調（行頭の "!! " は消える）
 
-import { esc, highlight } from './highlight.js'
+import { esc, highlight } from './highlight.ts'
 
-export const BG = {
+export const BG: Record<string, string> = {
   blue: '#0d76bc',
   orange: '#ff6a00',
   purple: '#5c2d91',
@@ -21,55 +21,72 @@ export const BG = {
 
 const DIRECTIVES = /^(center|title|wide|bg=.+|size=.+)$/
 
+/** frontmatter（`key: value` だけの簡易 YAML） */
+export type Meta = Record<string, string>
+
+export interface Parsed {
+  meta: Meta
+  /** スライドごとの `<section>` */
+  sections: string[]
+}
+
 // ---------------------------------------------------------------
 // inline
 // ---------------------------------------------------------------
 
-export function inline(text) {
-  const codes = []
-  let s = text.replace(/`([^`]+)`/g, (_, c) => {
+export function inline(text: string): string {
+  const codes: string[] = []
+  let s = text.replace(/`([^`]+)`/g, (_, c: string) => {
     codes.push(`<code>${esc(c)}</code>`)
     return `\u0000${codes.length - 1}\u0000`
   })
   s = esc(s)
-  s = s.replace(/!\[([^\]]*)\]\(([^)\s]+)(?:\s+&quot;([^&]*)&quot;)?\)/g, (_, alt, src, title) =>
-    `<img src="${src}" alt="${alt}">` + (title ? `<span class="img-caption">${title}</span>` : '')
+  s = s.replace(
+    /!\[([^\]]*)\]\(([^)\s]+)(?:\s+&quot;([^&]*)&quot;)?\)/g,
+    (_, alt: string, src: string, title: string | undefined) =>
+      `<img src="${src}" alt="${alt}">` + (title ? `<span class="img-caption">${title}</span>` : '')
   )
   s = s.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
   s = s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
   s = s.replace(/(^|[^*])\*([^*\s][^*]*?)\*/g, '$1<em>$2</em>')
   s = s.replace(/→/g, '<span class="arrow">→</span>')
-  return s.replace(/\u0000(\d+)\u0000/g, (_, i) => codes[i])
+  return s.replace(/\u0000(\d+)\u0000/g, (_, i: string) => codes[Number(i)]!)
 }
 
 // ---------------------------------------------------------------
 // block
 // ---------------------------------------------------------------
 
-function list(items) {
-  const base = items[0].indent
-  const tag = items[0].ordered ? 'ol' : 'ul'
+interface ListItem {
+  indent: number
+  ordered: boolean
+  text: string
+}
+
+function list(items: ListItem[]): string {
+  const base = items[0]!.indent
+  const tag = items[0]!.ordered ? 'ol' : 'ul'
   let html = `<${tag}>`
   let i = 0
   while (i < items.length) {
-    const item = items[i++]
-    const children = []
-    while (i < items.length && items[i].indent > base) children.push(items[i++])
+    const item = items[i++]!
+    const children: ListItem[] = []
+    while (i < items.length && items[i]!.indent > base) children.push(items[i++]!)
     html += `<li>${inline(item.text)}${children.length ? list(children) : ''}</li>`
   }
   return html + `</${tag}>`
 }
 
-function table(rows) {
+function table(rows: string[]): string {
   // `\|` はセルの区切りではなく文字としての |
-  const cells = (r) =>
+  const cells = (r: string) =>
     r
       .trim()
       .replace(/^\||\|$/g, '')
       .split(/(?<!\\)\|/)
       .map((c) => c.trim().replace(/\\\|/g, '|'))
-  const head = cells(rows[0])
-  const align = cells(rows[1]).map((c) => (/:$/.test(c) ? ' class="num"' : ''))
+  const head = cells(rows[0]!)
+  const align = cells(rows[1]!).map((c) => (/:$/.test(c) ? ' class="num"' : ''))
   let html = '<table><thead><tr>'
   head.forEach((c, i) => (html += `<th${align[i] || ''}>${inline(c)}</th>`))
   html += '</tr></thead><tbody>'
@@ -83,10 +100,10 @@ function table(rows) {
 
 const LIST_ITEM = /^(\s*)([-*]|\d+\.)\s+(.*)$/
 
-export function blocks(src) {
+export function blocks(src: string): string {
   const lines = src.split('\n')
   let html = ''
-  let para = []
+  let para: string[] = []
 
   const flush = () => {
     if (!para.length) return
@@ -97,14 +114,14 @@ export function blocks(src) {
   }
 
   for (let i = 0; i < lines.length; i++) {
-    const line = lines[i]
+    const line = lines[i]!
 
     const fence = line.match(/^```([\w-]*)\s*$/)
     if (fence) {
       flush()
-      const lang = fence[1]
-      const body = []
-      while (++i < lines.length && !/^```\s*$/.test(lines[i])) body.push(lines[i])
+      const lang = fence[1]!
+      const body: string[] = []
+      while (++i < lines.length && !/^```\s*$/.test(lines[i]!)) body.push(lines[i]!)
       const attr = lang && lang !== 'console' ? ` data-lang="${esc(lang)}"` : ''
       html += `<pre${attr}><code>${highlight(body.join('\n'), lang)}</code></pre>`
       continue
@@ -118,16 +135,17 @@ export function blocks(src) {
     const h = line.match(/^(#{1,3})\s+(.*)$/)
     if (h) {
       flush()
-      html += `<h${h[1].length}>${inline(h[2])}</h${h[1].length}>`
+      const level = h[1]!.length
+      html += `<h${level}>${inline(h[2]!)}</h${level}>`
       continue
     }
 
     if (LIST_ITEM.test(line) && !line.startsWith('-# ')) {
       flush()
-      const items = []
-      while (i < lines.length && LIST_ITEM.test(lines[i])) {
-        const m = lines[i].match(LIST_ITEM)
-        items.push({ indent: m[1].length, ordered: /\d/.test(m[2]), text: m[3] })
+      const items: ListItem[] = []
+      let m: RegExpMatchArray | null
+      while (i < lines.length && (m = lines[i]!.match(LIST_ITEM))) {
+        items.push({ indent: m[1]!.length, ordered: /\d/.test(m[2]!), text: m[3]! })
         i++
       }
       i--
@@ -137,8 +155,8 @@ export function blocks(src) {
 
     if (line.startsWith('|') && /^\|?\s*:?-+/.test(lines[i + 1] || '')) {
       flush()
-      const rows = []
-      while (i < lines.length && lines[i].startsWith('|')) rows.push(lines[i++])
+      const rows: string[] = []
+      while (i < lines.length && lines[i]!.startsWith('|')) rows.push(lines[i++]!)
       i--
       html += table(rows)
       continue
@@ -146,8 +164,8 @@ export function blocks(src) {
 
     if (line.startsWith('> ')) {
       flush()
-      const q = []
-      while (i < lines.length && lines[i].startsWith('> ')) q.push(lines[i++].slice(2))
+      const q: string[] = []
+      while (i < lines.length && lines[i]!.startsWith('> ')) q.push(lines[i++]!.slice(2))
       i--
       html += `<blockquote>${blocks(q.join('\n'))}</blockquote>`
       continue
@@ -163,9 +181,9 @@ export function blocks(src) {
 // slide
 // ---------------------------------------------------------------
 
-export function splitSlides(md) {
-  const slides = []
-  let cur = []
+export function splitSlides(md: string): string[] {
+  const slides: string[] = []
+  let cur: string[] = []
   let inFence = false
   for (const line of md.split('\n')) {
     if (/^```/.test(line)) inFence = !inFence
@@ -178,35 +196,37 @@ export function splitSlides(md) {
   return slides.filter((s) => s.trim())
 }
 
-export function slide(src) {
+export function slide(src: string): string {
   const classes = ['slide']
   let style = ''
   let body = src.replace(/^\s+/, '')
 
   const d = body.match(/^::([^:]+)::[ \t]*(\n|$)/)
-  const tokens = d ? d[1].trim().split(/\s+/) : []
+  const tokens = d ? d[1]!.trim().split(/\s+/) : []
   if (d && tokens.every((t) => DIRECTIVES.test(t))) {
     for (const tok of tokens) {
       const bg = tok.match(/^bg=(.+)$/)
       const size = tok.match(/^size=(.+)$/)
       if (bg) {
-        style += `background:${esc(BG[bg[1]] || bg[1])};`
-        if (bg[1] === 'white') classes.push('light')
-      } else if (size) style += `--slide-size:${esc(size[1])};`
+        const name = bg[1]!
+        style += `background:${esc(BG[name] || name)};`
+        if (name === 'white') classes.push('light')
+      } else if (size) style += `--slide-size:${esc(size[1]!)};`
       else classes.push(tok)
     }
     body = body.slice(d[0].length)
   }
 
-  let html
+  let html: string
   const parts = body.split(/^::right::[ \t]*$/m)
   if (parts.length === 2) {
+    const [first, right] = parts as [string, string]
     // 先頭の見出しはカラムの外（上）に出す
-    const head = parts[0].match(/^\s*(#{1,3} .*)\n/)
-    const left = head ? parts[0].replace(head[0], '') : parts[0]
+    const head = first.match(/^\s*(#{1,3} .*)\n/)
+    const left = head ? first.replace(head[0], '') : first
     html =
-      (head ? blocks(head[1]) : '') +
-      `<div class="cols"><div>${blocks(left)}</div><div>${blocks(parts[1])}</div></div>`
+      (head ? blocks(head[1]!) : '') +
+      `<div class="cols"><div>${blocks(left)}</div><div>${blocks(right)}</div></div>`
   } else {
     html = blocks(body)
   }
@@ -214,19 +234,19 @@ export function slide(src) {
   return `<section class="${classes.join(' ')}"${style ? ` style="${style}"` : ''}>${html}</section>`
 }
 
-export function frontmatter(md) {
-  const m = md.replace(/^﻿/, '').match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n/)
+export function frontmatter(md: string): [Meta, string] {
+  const m = md.replace(/^\uFEFF/, '').match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n/)
   if (!m) return [{}, md]
-  const meta = {}
-  for (const line of m[1].split(/\r?\n/)) {
+  const meta: Meta = {}
+  for (const line of m[1]!.split(/\r?\n/)) {
     const kv = line.match(/^(\w+):\s*(.*?)\s*$/)
-    if (kv) meta[kv[1]] = kv[2].replace(/^(["'])(.*)\1$/, '$2')
+    if (kv) meta[kv[1]!] = kv[2]!.replace(/^(["'])(.*)\1$/, '$2')
   }
   return [meta, md.slice(m[0].length)]
 }
 
 /** Markdown 全体 → { meta, sections } */
-export function parse(md) {
+export function parse(md: string): Parsed {
   const [meta, body] = frontmatter(md.replace(/\r\n/g, '\n'))
   return { meta, sections: splitSlides(body).map(slide) }
 }

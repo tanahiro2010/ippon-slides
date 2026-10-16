@@ -5,14 +5,14 @@ import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { after, test } from 'node:test'
 import { fileURLToPath } from 'node:url'
-import { outputs, parseArgs } from '../src/cli.js'
-import { findBrowser } from '../src/pdf.js'
+import { outputs, parseArgs } from '../src/cli.ts'
+import { findBrowser } from '../src/pdf.ts'
 
 const bin = fileURLToPath(new URL('../bin/ippon.js', import.meta.url))
 const dir = mkdtempSync(join(tmpdir(), 'ippon-test-'))
 after(() => rmSync(dir, { recursive: true, force: true }))
 
-const run = (...args) => execFileSync(process.execPath, [bin, ...args], { cwd: dir, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] })
+const run = (...args: string[]) => execFileSync(process.execPath, [bin, ...args], { cwd: dir, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] })
 
 test('parseArgs', () => {
   assert.deepEqual(parseArgs(['build', 'a.md', '--pdf', '-o', 'out', '--css=x.css']), {
@@ -26,7 +26,7 @@ test('parseArgs', () => {
 })
 
 test('outputs: 出力先の決め方', () => {
-  const p = (o) => outputs('talk/slide.md', o).map((x) => x.path)
+  const p = (o: Parameters<typeof outputs>[1]) => outputs('talk/slide.md', o).map((x) => x.path)
   assert.deepEqual(p({}), [resolve('talk/slide.html')])
   assert.deepEqual(p({ pdf: true }), [resolve('talk/slide.pdf')])
   assert.deepEqual(p({ html: true, pdf: true }), [resolve('talk/slide.html'), resolve('talk/slide.pdf')])
@@ -45,7 +45,7 @@ test('init → build --html', () => {
   assert.match(out, /✓ 9 slides → .*slide\.html/)
   const html = readFileSync(join(dir, 'slide.html'), 'utf8')
   assert.match(html, /<title>はじめての ippon<\/title>/)
-  assert.equal(html.match(/<section /g).length, 9)
+  assert.equal(html.match(/<section /g)?.length, 9)
 })
 
 test('画像の相対パスは出力先から見たパスに書き換える', () => {
@@ -73,5 +73,5 @@ test('build --pdf', { skip: !findBrowser() && 'Chrome / Chromium / Edge がな�
   assert.ok(existsSync(join(dir, 'dist/both.html')))
   const pdf = readFileSync(join(dir, 'dist/both.pdf'))
   assert.equal(pdf.subarray(0, 5).toString(), '%PDF-')
-  assert.equal(pdf.toString('latin1').match(/\/Type\s*\/Page[^s]/g).length, 9)
+  assert.equal(pdf.toString('latin1').match(/\/Type\s*\/Page[^s]/g)?.length, 9)
 })

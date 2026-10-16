@@ -4,136 +4,138 @@
 //   Home / End                              最初 / 最後
 //   f                                       フルスクリーン
 //   o / Esc                                 一覧
-;(function () {
-  var slides = Array.prototype.slice.call(document.querySelectorAll('#deck .slide'))
+(() => {
+  const slides = Array.from(document.querySelectorAll<HTMLElement>('#deck .slide'))
   if (!slides.length) return
 
-  var idx = 0
-  var progress = document.getElementById('progress')
-  var counter = document.getElementById('counter')
-  var timerEl = document.getElementById('timer')
+  const $ = (id: string) => document.getElementById(id)!
 
-  function clamp(n) {
-    return Math.max(0, Math.min(slides.length - 1, n))
-  }
+  let idx = 0
+  const progress = $('progress')
+  const counter = $('counter')
+  const timerEl = $('timer')
+
+  const clamp = (n: number) => Math.max(0, Math.min(slides.length - 1, n))
 
   // ---------- タイマー（表紙から進んだら開始、表紙に戻ったらリセット） ----------
 
-  var startedAt = null
-  var ticking = null
-  function fmt(ms) {
-    var s = Math.floor(ms / 1000)
-    var m = Math.floor(s / 60)
-    s = s % 60
+  let startedAt: number | null = null
+  let ticking: number | undefined
+  function fmt(ms: number): string {
+    const total = Math.floor(ms / 1000)
+    const m = Math.floor(total / 60)
+    const s = total % 60
     return m + ':' + (s < 10 ? '0' : '') + s
   }
-  function syncTimer() {
+  function syncTimer(): void {
     if (idx === 0) {
       startedAt = null
       clearInterval(ticking)
-      ticking = null
+      ticking = undefined
       timerEl.textContent = ''
       return
     }
-    if (startedAt === null) startedAt = Date.now()
-    if (!ticking) {
-      ticking = setInterval(function () {
-        timerEl.textContent = fmt(Date.now() - startedAt)
-      }, 500)
-    }
-    timerEl.textContent = fmt(Date.now() - startedAt)
+    const t0 = (startedAt ??= Date.now())
+    ticking ??= window.setInterval(() => {
+      timerEl.textContent = fmt(Date.now() - t0)
+    }, 500)
+    timerEl.textContent = fmt(Date.now() - t0)
   }
 
   // ---------- 描画 ----------
 
-  function render() {
-    slides.forEach(function (s, i) {
-      s.classList.toggle('active', i === idx)
-    })
-    slides[idx].scrollTop = 0
+  function render(): void {
+    slides.forEach((s, i) => s.classList.toggle('active', i === idx))
+    slides[idx]!.scrollTop = 0
     counter.textContent = idx + 1 + ' / ' + slides.length
     progress.style.width = ((idx + 1) / slides.length) * 100 + '%'
     syncTimer()
   }
-  function go(n) {
+  function go(n: number): void {
     n = clamp(n)
     if (n === idx) return
     idx = n
     render()
     history.replaceState(null, '', '#' + (idx + 1))
   }
-  window.addEventListener('hashchange', function () {
-    var n = parseInt(location.hash.slice(1), 10)
+  window.addEventListener('hashchange', () => {
+    const n = parseInt(location.hash.slice(1), 10)
     if (n) go(n - 1)
   })
 
   // ---------- 一覧 ----------
 
-  var overview = document.getElementById('overview')
-  var ovItems = null
-  var ovOpen = false
-  var THUMB = 240
+  interface Thumb {
+    item: HTMLElement
+    frame: HTMLElement
+    scale: HTMLElement
+  }
 
-  function buildOverview() {
-    ovItems = slides.map(function (s, i) {
-      var item = document.createElement('div')
-      item.className = 'ov-item'
-      var frame = document.createElement('div')
-      frame.className = 'ov-frame'
-      var scale = document.createElement('div')
-      scale.className = 'ov-scale'
-      var clone = s.cloneNode(true)
+  const overview = $('overview')
+  let ovItems: Thumb[] | null = null
+  let ovOpen = false
+  const THUMB = 240
+
+  const div = (className: string) => {
+    const el = document.createElement('div')
+    el.className = className
+    return el
+  }
+
+  function buildOverview(): Thumb[] {
+    return slides.map((s, i) => {
+      const item = div('ov-item')
+      const frame = div('ov-frame')
+      const scale = div('ov-scale')
+      const clone = s.cloneNode(true) as HTMLElement
       clone.classList.remove('active')
       scale.appendChild(clone)
       frame.appendChild(scale)
-      var num = document.createElement('div')
-      num.className = 'ov-num'
-      num.textContent = i + 1
+      const num = div('ov-num')
+      num.textContent = String(i + 1)
       item.appendChild(frame)
       item.appendChild(num)
-      item.addEventListener('click', function () {
+      item.addEventListener('click', () => {
         idx = i
         closeOverview()
         render()
         history.replaceState(null, '', '#' + (idx + 1))
       })
       overview.appendChild(item)
-      return { item: item, frame: frame, scale: scale }
+      return { item, frame, scale }
     })
   }
-  function layoutOverview() {
-    var w = window.innerWidth
-    var h = window.innerHeight
-    var k = THUMB / w
-    ovItems.forEach(function (t) {
+  function layoutOverview(items: Thumb[]): void {
+    const w = window.innerWidth
+    const h = window.innerHeight
+    const k = THUMB / w
+    for (const t of items) {
       t.frame.style.width = THUMB + 'px'
       t.frame.style.height = h * k + 'px'
       t.scale.style.width = w + 'px'
       t.scale.style.height = h + 'px'
       t.scale.style.transform = 'scale(' + k + ')'
-    })
+    }
   }
-  function openOverview() {
-    if (!ovItems) buildOverview()
-    layoutOverview()
-    ovItems.forEach(function (t, i) {
-      t.item.classList.toggle('current', i === idx)
-    })
+  function openOverview(): void {
+    const items = (ovItems ??= buildOverview())
+    layoutOverview(items)
+    items.forEach((t, i) => t.item.classList.toggle('current', i === idx))
     ovOpen = true
     document.body.classList.add('overview')
-    ovItems[idx].item.scrollIntoView({ block: 'center' })
+    items[idx]!.item.scrollIntoView({ block: 'center' })
   }
-  function closeOverview() {
+  function closeOverview(): void {
     ovOpen = false
     document.body.classList.remove('overview')
   }
-  window.addEventListener('resize', function () {
-    if (ovOpen) layoutOverview()
+  window.addEventListener('resize', () => {
+    if (ovOpen && ovItems) layoutOverview(ovItems)
   })
 
   // ---------- 入力 ----------
 
-  document.addEventListener('keydown', function (e) {
+  document.addEventListener('keydown', (e) => {
     if (e.metaKey || e.ctrlKey || e.altKey) return
     if (ovOpen) {
       if (e.key === 'Escape' || e.key === 'o') closeOverview()
@@ -171,41 +173,39 @@
   })
 
   // 画面の右 3 割で次へ、左 3 割で前へ（リンクと文字選択は邪魔しない）
-  var deck = document.getElementById('deck')
-  deck.addEventListener('click', function (e) {
-    if (e.target.closest('a, button')) return
+  const deck = $('deck')
+  deck.addEventListener('click', (e) => {
+    if (e.target instanceof Element && e.target.closest('a, button')) return
     if (String(window.getSelection() || '')) return
-    var x = e.clientX / window.innerWidth
+    const x = e.clientX / window.innerWidth
     if (x > 0.7) go(idx + 1)
     else if (x < 0.3) go(idx - 1)
   })
 
   // 横スワイプ
-  var tx = null
-  var ty = null
+  let touch: { x: number; y: number } | null = null
   deck.addEventListener(
     'touchstart',
-    function (e) {
-      if (e.touches.length !== 1) return (tx = null)
-      tx = e.touches[0].clientX
-      ty = e.touches[0].clientY
+    (e) => {
+      const t = e.touches[0]
+      touch = e.touches.length === 1 && t ? { x: t.clientX, y: t.clientY } : null
     },
     { passive: true }
   )
   deck.addEventListener(
     'touchend',
-    function (e) {
-      if (tx === null) return
-      var t = e.changedTouches[0]
-      var dx = t.clientX - tx
-      var dy = t.clientY - ty
-      tx = null
+    (e) => {
+      const t = e.changedTouches[0]
+      if (!touch || !t) return
+      const dx = t.clientX - touch.x
+      const dy = t.clientY - touch.y
+      touch = null
       if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) go(dx < 0 ? idx + 1 : idx - 1)
     },
     { passive: true }
   )
 
-  var start = parseInt(location.hash.slice(1), 10)
+  const start = parseInt(location.hash.slice(1), 10)
   if (start) idx = clamp(start - 1)
   render()
 })()
