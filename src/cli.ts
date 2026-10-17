@@ -1,10 +1,10 @@
 import { existsSync, mkdirSync, readFileSync, statSync, watch, writeFileSync } from 'node:fs'
 import { basename, dirname, extname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { toPdf } from './pdf.js'
-import { render } from './render.js'
+import { toPdf } from './pdf.ts'
+import { render } from './render.ts'
 
-const pkg = JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), '..', 'package.json'), 'utf8'))
+const pkg: { version: string } = JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), '..', 'package.json'), 'utf8'))
 
 const HELP = `ippon v${pkg.version} — 1 枚 1 メッセージのスライドを Markdown から作る
 
@@ -36,21 +36,39 @@ build のオプション:
 // args
 // ---------------------------------------------------------------
 
-const FLAGS = { '--html': 'html', '--pdf': 'pdf', '-w': 'watch', '--watch': 'watch', '-h': 'help', '--help': 'help', '-v': 'version', '--version': 'version' }
-const VALUES = { '-o': 'output', '--output': 'output', '--css': 'css', '--browser-path': 'browserPath' }
+export interface Options {
+  /** 位置引数 */
+  _: string[]
+  html?: boolean
+  pdf?: boolean
+  watch?: boolean
+  help?: boolean
+  version?: boolean
+  output?: string
+  css?: string
+  browserPath?: string
+}
 
-export function parseArgs(argv) {
-  const opts = { _: [] }
+type Flag = 'html' | 'pdf' | 'watch' | 'help' | 'version'
+type Value = 'output' | 'css' | 'browserPath'
+
+const FLAGS: Record<string, Flag> = { '--html': 'html', '--pdf': 'pdf', '-w': 'watch', '--watch': 'watch', '-h': 'help', '--help': 'help', '-v': 'version', '--version': 'version' }
+const VALUES: Record<string, Value> = { '-o': 'output', '--output': 'output', '--css': 'css', '--browser-path': 'browserPath' }
+
+export function parseArgs(argv: string[]): Options {
+  const opts: Options = { _: [] }
   for (let i = 0; i < argv.length; i++) {
-    let a = argv[i]
-    let v
+    let a = argv[i]!
+    let v: string | undefined
     const eq = a.match(/^(--[^=]+)=(.*)$/)
-    if (eq) [, a, v] = eq
-    if (FLAGS[a]) opts[FLAGS[a]] = true
-    else if (VALUES[a]) {
+    if (eq) [, a, v] = eq as [string, string, string]
+    const flag = FLAGS[a]
+    const value = VALUES[a]
+    if (flag) opts[flag] = true
+    else if (value) {
       if (v === undefined) v = argv[++i]
       if (v === undefined) throw new Error(`${a} には値が必要です`)
-      opts[VALUES[a]] = v
+      opts[value] = v
     } else if (a.startsWith('-') && a !== '-') throw new Error(`不明なオプション: ${a}`)
     else opts._.push(a)
   }
@@ -58,14 +76,19 @@ export function parseArgs(argv) {
 }
 
 /** 出力先を決める */
-export function outputs(input, { html, pdf, output }) {
-  const formats = []
+export type Format = 'html' | 'pdf'
+
+export function outputs(
+  input: string,
+  { html, pdf, output }: Pick<Options, 'html' | 'pdf' | 'output'>
+): { format: Format; path: string }[] {
+  const formats: Format[] = []
   if (html || !pdf) formats.push('html')
   if (pdf) formats.push('pdf')
 
   const name = basename(input, extname(input))
-  let base // 拡張子なしのパス
-  let exact = null // 1 形式だけのときに -o をそのまま使う
+  let base = '' // 拡張子なしのパス
+  let exact: string | null = null // 1 形式だけのときに -o をそのまま使う
 
   if (!output) base = join(dirname(input), name)
   else if (output.endsWith('/') || output.endsWith('\\') || (existsSync(output) && statSync(output).isDirectory()))
@@ -82,7 +105,7 @@ export function outputs(input, { html, pdf, output }) {
 
 const time = () => new Date().toLocaleTimeString()
 
-async function build(input, opts) {
+async function build(input: string, opts: Options): Promise<void> {
   const md = readFileSync(input, 'utf8')
   const css = opts.css ? readFileSync(opts.css, 'utf8') : ''
   const baseDir = dirname(resolve(input))
@@ -101,17 +124,17 @@ async function build(input, opts) {
   }
 }
 
-function watchBuild(input, opts) {
-  let timer = null
+function watchBuild(input: string, opts: Options): void {
+  let timer: NodeJS.Timeout | undefined
   let running = Promise.resolve()
   const rebuild = () => {
     clearTimeout(timer)
     timer = setTimeout(() => {
-      running = running.then(() => build(input, opts)).catch((e) => console.error(`${time()} ✗ ${e.message}`))
+      running = running.then(() => build(input, opts)).catch((e: Error) => console.error(`${time()} ✗ ${e.message}`))
     }, 80)
   }
   // エディタによってはファイルを置き換えて保存するので、ディレクトリごと監視する
-  const files = [input, opts.css].filter(Boolean).map((f) => resolve(f))
+  const files = [input, opts.css].filter((f) => f !== undefined).map((f) => resolve(f))
   for (const dir of new Set(files.map(dirname))) {
     watch(dir, (_, file) => {
       if (file && files.includes(join(dir, file.toString()))) rebuild()
@@ -207,7 +230,7 @@ $ npx ippon-slides build slide.md --html --pdf
 あなたの名前
 `
 
-function init(file = 'slide.md') {
+function init(file = 'slide.md'): void {
   if (existsSync(file)) throw new Error(`${file} はすでにあります`)
   writeFileSync(file, SAMPLE)
   console.log(`✓ ${file} を作りました → ippon build ${file} --html -w`)
@@ -217,12 +240,13 @@ function init(file = 'slide.md') {
 // main
 // ---------------------------------------------------------------
 
-export async function main(argv) {
+export async function main(argv: string[]): Promise<void> {
   const opts = parseArgs(argv)
   if (opts.version) return console.log(pkg.version)
-  if (opts.help || opts._.length === 0) return console.log(HELP)
+  const [cmd, ...args] = opts._
+  if (opts.help || cmd === undefined) return console.log(HELP)
 
-  let [cmd, ...rest] = opts._
+  let rest = args
   if (cmd === 'init') return init(rest[0])
   if (cmd !== 'build') rest = [cmd, ...rest] // `ippon slide.md` は build の省略形
 
