@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ippon — 1 枚 1 メッセージ · Markdown から単一 HTML スライド + PDF</title>
+<meta name="description" content="ippon は Markdown を「1 枚 1 メッセージ」のスライドに変換するゼロ依存の CLI。CSS/JS 全部入りの単一 HTML ファイル（と 16:9 の PDF）を出力。スマホをリモコンにでき、HTTP レスポンスの埋め込みやコードの拡大にも対応。MIT ライセンスのオープンソース。">
+<meta name="keywords" content="Markdown スライド, Markdown プレゼン, Markdown から スライド, 高橋メソッド, 単一 HTML スライド, Markdown PDF, プレゼン CLI, オープンソース プレゼンツール">
+<meta name="author" content="tanahiro2010">
+<meta name="theme-color" content="#0b0b0d">
+<link rel="canonical" href="https://tanahiro2010.github.io/ippon-slides/ja/">
+<link rel="alternate" hreflang="en" href="https://tanahiro2010.github.io/ippon-slides/">
+<link rel="alternate" hreflang="ja" href="https://tanahiro2010.github.io/ippon-slides/ja/">
+<link rel="alternate" hreflang="x-default" href="https://tanahiro2010.github.io/ippon-slides/">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="ippon-slides">
+<meta property="og:title" content="ippon — 1 枚 1 メッセージ">
+<meta property="og:description" content="Markdown を「1 枚 1 メッセージ」のスライドに。CSS/JS 全部入りの単一 HTML（+16:9 PDF）。スマホをリモコンに、HTTP レスポンス埋め込み、コード拡大。ゼロ依存・MIT。">
+<meta property="og:url" content="https://tanahiro2010.github.io/ippon-slides/ja/">
+<meta property="og:image" content="https://tanahiro2010.github.io/ippon-slides/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:locale" content="ja_JP">
+<meta property="og:locale:alternate" content="en_US">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="ippon — 1 枚 1 メッセージ">
+<meta name="twitter:description" content="Markdown →「1 枚 1 メッセージ」の単一 HTML スライド（+PDF）。ゼロ依存・オープンソース。">
+<meta name="twitter:image" content="https://tanahiro2010.github.io/ippon-slides/og.png">
+<link rel="stylesheet" href="../style.css">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "SoftwareApplication",
+      "name": "ippon-slides",
+      "alternateName": "ippon",
+      "description": "Markdown を「1 枚 1 メッセージ」のスライドに変換するゼロ依存の CLI。単一の自己完結 HTML と任意の 16:9 PDF を出力。",
+      "applicationCategory": "DeveloperApplication",
+      "operatingSystem": "macOS, Linux, Windows (Node.js ≥ 18.17)",
+      "url": "https://tanahiro2010.github.io/ippon-slides/ja/",
+      "downloadUrl": "https://www.npmjs.com/package/ippon-slides",
+      "codeRepository": "https://github.com/tanahiro2010/ippon-slides",
+      "license": "https://opensource.org/licenses/MIT",
+      "author": { "@type": "Person", "name": "tanahiro2010" },
+      "offers": { "@type": "Offer", "price": "0", "priceCurrency": "JPY" }
+    },
+    {
+      "@type": "WebSite",
+      "name": "ippon-slides",
+      "url": "https://tanahiro2010.github.io/ippon-slides/ja/",
+      "inLanguage": "ja"
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "Markdown からスライドを作るには？",
+          "acceptedAnswer": { "@type": "Answer", "text": "npx ippon-slides init でサンプルの slide.md を作り、npx ippon-slides build slide.md --html で自己完結した 1 枚の slide.html を出力します。スライドは --- で区切り、1 枚に 1 メッセージを書きます。" }
+        },
+        {
+          "@type": "Question",
+          "name": "出力はオフラインで動きますか？",
+          "acceptedAnswer": { "@type": "Answer", "text": "はい。CSS も JS も全部インラインにした単一 HTML を出力するので、ネットワーク・サーバー・ランタイム依存なしで、どのブラウザでも開けます。" }
+        },
+        {
+          "@type": "Question",
+          "name": "PDF に書き出せますか？",
+          "acceptedAnswer": { "@type": "Answer", "text": "はい。--pdf で 16:9 の PDF を出力します。ヘッドレスブラウザを同梱せず、ローカルの Chrome / Chromium / Edge を直接使うのでゼロ依存を保てます。" }
+        },
+        {
+          "@type": "Question",
+          "name": "スマホからスライドを操作できますか？",
+          "acceptedAnswer": { "@type": "Answer", "text": "はい。ippon serve slide.md でローカルサーバを立て、QR コードを表示します。スマホで読み取るとページ送り・タイマー・発表者ノートを手元で操作できます。通信は LAN 上の SSE だけで、WebSocket も外部サービスも使いません。" }
+        },
+        {
+          "@type": "Question",
+          "name": "無料でオープンソースですか？",
+          "acceptedAnswer": { "@type": "Answer", "text": "はい。MIT ライセンスで npm に公開しています。ランタイム依存はゼロです。" }
+        }
+      ]
+    }
+  ]
+}
+</script>
+</head>
+<body>
+
+<header class="nav">
+  <div class="wrap">
+    <a class="brand" href="../">ippon<span class="dot">.</span></a>
+    <nav>
+      <a class="hide-sm" href="#features">特徴</a>
+      <a class="hide-sm" href="#quickstart">はじめに</a>
+      <a class="hide-sm" href="#docs">記法</a>
+      <a class="hide-sm" href="#faq">FAQ</a>
+      <a href="https://github.com/tanahiro2010/ippon-slides">GitHub</a>
+      <a href="https://www.npmjs.com/package/ippon-slides">npm</a>
+      <a class="lang" href="../" hreflang="en">English</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+<section class="hero" style="border-bottom:none">
+  <div class="wrap">
+    <h1>1 枚に、<br>1 メッセージ。</h1>
+    <p class="lede">ippon は Markdown を「1 枚 1 メッセージ」のスライドに変換します。CSS/JS 全部入りの単一 HTML、そして 16:9 の PDF。ゼロ依存。ずっとあなたのもの。</p>
+    <div class="cta">
+      <a class="btn primary" href="#quickstart">はじめる</a>
+      <a class="btn" href="https://github.com/tanahiro2010/ippon-slides">GitHub でスター</a>
+      <span class="copybar"><code>npx ippon-slides init</code><button data-copy="npx ippon-slides init">コピー</button></span>
+    </div>
+  </div>
+</section>
+
+<section id="why">
+  <div class="wrap cols">
+    <div>
+      <h2>道具は消え、メッセージだけが残る。</h2>
+      <p class="sub">名前の <strong>ippon（一本）</strong> は柔道で勝負を決める一本から。1 枚で 1 つのメッセージを決める。巧さは装飾ではなく<strong>引き算</strong>にあります。箇条書きが溢れたら、それはフォントを縮めるのではなくスライドを分ける合図です。</p>
+    </div>
+    <div>
+      <p class="lead-quote accent">迷ったら、足すのではなく削る。スライドからも、この道具からも。</p>
+      <p class="muted">クラウドなし。専用ビューアなし。ランタイム依存なし。デッキはただの HTML ファイルで、どの端末でも、何年後でも開けます。</p>
+    </div>
+  </div>
+</section>
+
+<section id="features">
+  <div class="wrap">
+    <h2>全部、1 ファイルに</h2>
+    <p class="sub">厳選した機能だけ。ひとつひとつが居場所を持っています。</p>
+    <div class="grid">
+      <div class="card"><div class="ico">📄</div><h3>単一の自己完結 HTML</h3><p>CSS も JS もインライン。メールでも Git でもオフラインでも開ける 1 ファイル。ビルドサーバも CDN も不要。</p></div>
+      <div class="card"><div class="ico">🧩</div><h3>ランタイム依存ゼロ</h3><p>ビルドに使うのは TypeScript だけ。PDF 出力はブラウザを同梱せずローカルの Chrome を直接駆動。</p></div>
+      <div class="card"><div class="ico">🖨️</div><h3>16:9 PDF 出力</h3><p><code>--pdf</code> でフォントも色もそのままの 16:9 PDF を生成。</p></div>
+      <div class="card"><div class="ico">📱</div><h3>スマホがリモコン</h3><p><code>ippon serve</code> が QR を表示。読み取ればページ送り・タイマー・発表者ノートを手元で。LAN 上で動き WebSocket 不要。</p></div>
+      <div class="card"><div class="ico">🌐</div><h3>HTTP プレイグラウンド</h3><p><code>::http::</code> で実レスポンス（ステータス・時間・ヘッダー・整形 JSON）をビルド時に焼き込み（CORS 無関係）＋ライブ再送信。</p></div>
+      <div class="card"><div class="ico">🔍</div><h3>拡大とスポットライト</h3><p>画像やコードをクリックで拡大。行をクリックすると周囲が暗くなり 1 行だけ強調。コード解説に最適。</p></div>
+      <div class="card"><div class="ico">🧑‍🏫</div><h3>発表者ビュー</h3><p><code>p</code> で現在・次のスライド、発表者ノート、タイマーを別ウィンドウに。両画面は同期。</p></div>
+      <div class="card"><div class="ico">🎨</div><h3>テーマ変更</h3><p><code>--css</code> で少数の CSS 変数を上書き。既定のままですぐ発表に臨めます。</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="quickstart">
+  <div class="wrap">
+    <h2>はじめに</h2>
+    <p class="sub">インストール不要。<code>npx</code> でその場で実行（Node.js 18.17+）。</p>
+    <div class="cols">
+      <div>
+        <h3>1 · 作って、ビルド</h3>
+        <pre><span class="c"># サンプルを作る</span>
+npx ippon-slides <span class="a">init</span>
+
+<span class="c"># 単一 HTML を作る</span>
+npx ippon-slides <span class="a">build</span> slide.md --html
+
+<span class="c"># 16:9 PDF も</span>
+npx ippon-slides build slide.md --pdf</pre>
+      </div>
+      <div>
+        <h3>2 · 1 枚 1 メッセージで書く</h3>
+<pre><span class="k">::title::</span>
+
+<span class="k">#</span> はじめての ippon
+
+あなたの名前 · 2026
+
+<span class="c">---</span>
+
+<span class="k">::center::</span>
+
+1 枚に
+
+1 メッセージ</pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="docs">
+  <div class="wrap">
+    <h2>Markdown 記法</h2>
+    <p class="sub">ふつうの Markdown に、スライド用の記法を少しだけ。詳細は <a href="https://github.com/tanahiro2010/ippon-slides/tree/main/docs">ドキュメント</a>。</p>
+    <table>
+      <thead><tr><th>記法</th><th>意味</th></tr></thead>
+      <tbody>
+        <tr><td><code>---</code></td><td>スライドの区切り（コードフェンス内は無視）。</td></tr>
+        <tr><td><code>::center::</code></td><td>中央寄せの大きな 1 メッセージ。</td></tr>
+        <tr><td><code>::title::</code></td><td>表紙。最後の行が下に沈む。</td></tr>
+        <tr><td><code>::bg=blue::</code> / <code>::size=1.5::</code></td><td>背景色・文字サイズ倍率。</td></tr>
+        <tr><td><code>::right::</code></td><td>2 カラム（<code>left-wide</code> / <code>right-wide</code> で 1.4:1）。</td></tr>
+        <tr><td><code>::note::</code></td><td>以降は発表者ノート（発表者ビュー・スマホのみ）。</td></tr>
+        <tr><td><code>::http method=GET url=…::</code></td><td>HTTP リクエストのプレイグラウンド。</td></tr>
+        <tr><td><code>!! </code>（行頭）</td><td>コードのその行を強調。</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="remote">
+  <div class="wrap cols">
+    <div>
+<pre><span class="c"># LAN で配信し QR を表示</span>
+npx ippon-slides <span class="a">serve</span> slide.md</pre>
+    </div>
+    <div>
+      <h2>スマホをリモコンに</h2>
+      <p class="sub"><code>ippon serve</code> が QR を表示。読み取るとスマホがリモコンになり、ページ送り・タイマー・発表者ノートを手元で操作できます。通信は LAN 上の SSE だけ（WebSocket も外部サービスもなし）。ペアリング URL はランダムトークンで保護されます。</p>
+    </div>
+  </div>
+</section>
+
+<section id="faq" class="faq">
+  <div class="wrap">
+    <h2>FAQ</h2>
+    <details open><summary>Markdown からスライドを作るには？</summary><p><code>npx ippon-slides init</code> でサンプル <code>slide.md</code> を作り、<code>npx ippon-slides build slide.md --html</code> で単一の <code>slide.html</code> を出力します。<code>---</code> で区切り、1 枚に 1 メッセージ。</p></details>
+    <details><summary>出力はオフラインで動く？</summary><p>はい。CSS/JS 全部入りの 1 ファイルなので、ネットワークもサーバーも依存もなしで、どのブラウザでも開けます。</p></details>
+    <details><summary>PDF に書き出せる？</summary><p>はい、<code>--pdf</code> で。ローカルの Chrome / Chromium / Edge を使って 16:9 PDF を印刷するので、重いものを同梱しません。</p></details>
+    <details><summary>スマホから操作できる？</summary><p>はい。<code>ippon serve</code> が QR を表示。読み取ればページ送り・タイマー・発表者ノートを LAN 上の SSE で同期して操作できます。</p></details>
+    <details><summary>無料でオープンソース？</summary><p>はい。MIT ライセンスで npm に公開、ランタイム依存はゼロです。</p></details>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div>
+      <div class="brand">ippon<span class="dot">.</span></div>
+      <p class="muted">1 枚 1 メッセージ。MIT ライセンス。</p>
+    </div>
+    <div class="foot-links">
+      <a href="https://github.com/tanahiro2010/ippon-slides">GitHub</a>
+      <a href="https://www.npmjs.com/package/ippon-slides">npm</a>
+      <a href="https://github.com/tanahiro2010/ippon-slides/tree/main/docs">ドキュメント</a>
+      <a href="../">English</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+  document.querySelectorAll('button[data-copy]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      navigator.clipboard && navigator.clipboard.writeText(b.getAttribute('data-copy'));
+      var t = b.textContent; b.textContent = 'コピー済み';
+      setTimeout(function () { b.textContent = t; }, 1200);
+    });
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,340 @@
+/* ippon-slides — landing & docs site. Matches the deck's look: black + orange, big type. */
+:root {
+  --bg: #0b0b0d;
+  --bg-2: #141418;
+  --fg: #f4f4f5;
+  --muted: #9a9aa3;
+  --accent: #ff6a00;
+  --accent-2: #ff8534;
+  --border: rgba(255, 255, 255, 0.1);
+  --code-bg: #0e0e11;
+  --font: -apple-system, 'Hiragino Sans', 'Noto Sans JP', system-ui, sans-serif;
+  --mono: 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace;
+  --maxw: 1080px;
+}
+* {
+  box-sizing: border-box;
+}
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 72px;
+  -webkit-text-size-adjust: 100%;
+}
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font);
+  line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+}
+a {
+  color: var(--accent-2);
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+}
+h1,
+h2,
+h3 {
+  line-height: 1.15;
+  font-weight: 700;
+}
+code {
+  font-family: var(--mono);
+  font-size: 0.9em;
+}
+:not(pre) > code {
+  background: rgba(127, 127, 127, 0.18);
+  padding: 0.12em 0.4em;
+  border-radius: 4px;
+}
+.wrap {
+  max-width: var(--maxw);
+  margin: 0 auto;
+  padding: 0 24px;
+}
+.muted {
+  color: var(--muted);
+}
+.accent {
+  color: var(--accent-2);
+}
+
+/* nav */
+header.nav {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  backdrop-filter: saturate(140%) blur(10px);
+  background: rgba(11, 11, 13, 0.72);
+  border-bottom: 1px solid var(--border);
+}
+.nav .wrap {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  height: 60px;
+}
+.brand {
+  font-weight: 800;
+  font-size: 1.25rem;
+  color: var(--fg);
+  letter-spacing: -0.02em;
+}
+.brand .dot {
+  color: var(--accent);
+}
+.nav nav {
+  display: flex;
+  gap: 18px;
+  margin-left: auto;
+  align-items: center;
+  font-size: 0.95rem;
+}
+.nav nav a {
+  color: var(--muted);
+}
+.nav nav a:hover {
+  color: var(--fg);
+  text-decoration: none;
+}
+.nav .lang {
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-size: 0.82rem;
+}
+@media (max-width: 720px) {
+  .nav nav .hide-sm {
+    display: none;
+  }
+}
+
+/* hero */
+.hero {
+  padding: 84px 0 56px;
+  border-bottom: 1px solid var(--border);
+  background: radial-gradient(900px 420px at 70% -10%, rgba(255, 106, 0, 0.14), transparent 70%);
+}
+.hero h1 {
+  font-size: clamp(2.6rem, 6.5vw, 4.6rem);
+  letter-spacing: -0.03em;
+  margin: 0 0 0.3em;
+}
+.hero .lede {
+  font-size: clamp(1.1rem, 2.4vw, 1.5rem);
+  color: var(--muted);
+  max-width: 44ch;
+  margin: 0 0 1.6em;
+}
+.cta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+.btn {
+  display: inline-block;
+  padding: 0.7em 1.3em;
+  border-radius: 10px;
+  font-weight: 600;
+  border: 1px solid var(--border);
+  color: var(--fg);
+}
+.btn:hover {
+  text-decoration: none;
+  border-color: var(--accent);
+}
+.btn.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.btn.primary:hover {
+  background: var(--accent-2);
+}
+.copybar {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.6em 0.9em;
+  font-family: var(--mono);
+  font-size: 0.95rem;
+}
+.copybar button {
+  font: inherit;
+  font-size: 0.8rem;
+  color: var(--muted);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  border-left: 1px solid var(--border);
+  padding-left: 10px;
+}
+.copybar button:hover {
+  color: var(--fg);
+}
+
+/* sections */
+section {
+  padding: 64px 0;
+  border-bottom: 1px solid var(--border);
+}
+section h2 {
+  font-size: clamp(1.7rem, 3.6vw, 2.4rem);
+  letter-spacing: -0.02em;
+  margin: 0 0 0.2em;
+}
+section > .wrap > p.sub {
+  color: var(--muted);
+  font-size: 1.1rem;
+  margin: 0 0 1.8em;
+  max-width: 60ch;
+}
+.lead-quote {
+  font-size: clamp(1.3rem, 3vw, 2rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  max-width: 24ch;
+}
+
+/* feature grid */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 18px;
+}
+.card {
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 22px;
+}
+.card h3 {
+  margin: 0 0 0.4em;
+  font-size: 1.15rem;
+}
+.card p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.98rem;
+}
+.card .ico {
+  font-size: 1.4rem;
+}
+
+/* code */
+pre {
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.1rem 1.3rem;
+  overflow: auto;
+  font-family: var(--mono);
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+pre .c {
+  color: #7f848e;
+}
+pre .k {
+  color: #c678dd;
+}
+pre .s {
+  color: #98c379;
+}
+pre .a {
+  color: var(--accent-2);
+}
+.cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  align-items: start;
+}
+@media (max-width: 760px) {
+  .cols {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* table */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+th,
+td {
+  text-align: left;
+  padding: 0.6em 0.8em;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+th {
+  color: var(--muted);
+  font-weight: 600;
+}
+td code {
+  white-space: nowrap;
+}
+
+/* faq */
+.faq details {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 0 18px;
+  margin-bottom: 12px;
+  background: var(--bg-2);
+}
+.faq summary {
+  cursor: pointer;
+  font-weight: 600;
+  padding: 16px 0;
+  list-style: none;
+}
+.faq summary::-webkit-details-marker {
+  display: none;
+}
+.faq summary::before {
+  content: '+';
+  color: var(--accent);
+  font-weight: 700;
+  margin-right: 10px;
+}
+.faq details[open] summary::before {
+  content: '–';
+}
+.faq details p {
+  margin: 0 0 16px;
+  color: var(--muted);
+}
+
+/* footer */
+footer {
+  padding: 48px 0;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+footer .wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  justify-content: space-between;
+}
+footer a {
+  color: var(--muted);
+}
+footer a:hover {
+  color: var(--fg);
+}
+.foot-links {
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+}
