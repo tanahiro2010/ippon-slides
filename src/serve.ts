@@ -13,7 +13,7 @@ import { readFileSync, statSync } from 'node:fs'
 import { createServer } from 'node:http'
 import type { Server, ServerResponse } from 'node:http'
 import { networkInterfaces } from 'node:os'
-import { dirname, join, normalize, resolve } from 'node:path'
+import { dirname, join, normalize, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parse } from './markdown.ts'
 import { qrSvg } from './qr.ts'
@@ -35,6 +35,11 @@ const MIME: Record<string, string> = {
   '.avif': 'image/avif',
   '.ico': 'image/x-icon',
 }
+
+// トークン無しで静的配信してよいのはデッキが <img> で読む画像系だけ。
+// .json / .html / .js / .css / .md などは（隣に置かれた設定・秘密・発表者ノートを
+// 漏らさないよう）配信しない。
+const STATIC_EXT = new Set(['.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp', '.avif', '.ico'])
 
 export interface ServeOptions {
   port?: number
@@ -190,14 +195,16 @@ export async function serve(input: string, opts: ServeOptions = {}): Promise<Ser
         return end(res, 200, html, 'text/html; charset=utf-8')
       }
 
-      // ---- 静的ファイル（画像など） ----
+      // ---- 静的ファイル（画像） ----
+      // トークン無しで配信するので、画像系（STATIC_EXT）だけに限定する。
       const rel = normalize(path).replace(/^(\.\.(\/|\\|$))+/, '')
       const file = join(baseDir, rel)
-      if (!file.startsWith(baseDir)) return end(res, 403, 'forbidden')
+      if (file !== baseDir && !file.startsWith(baseDir + sep)) return end(res, 403, 'forbidden')
+      const ext = (file.match(/\.[^.]+$/)?.[0] || '').toLowerCase()
+      if (!STATIC_EXT.has(ext)) return end(res, 404, 'not found')
       try {
         if (statSync(file).isFile()) {
-          const ext = (file.match(/\.[^.]+$/)?.[0] || '').toLowerCase()
-          res.writeHead(200, { 'content-type': MIME[ext] || 'application/octet-stream' })
+          res.writeHead(200, { 'content-type': MIME[ext]! })
           res.end(readFileSync(file))
           return
         }
@@ -206,7 +213,9 @@ export async function serve(input: string, opts: ServeOptions = {}): Promise<Ser
       }
       end(res, 404, 'not found')
     } catch (e) {
-      end(res, 500, e instanceof Error ? e.message : 'error')
+      // 詳細はサーバ側ログだけに出し、クライアントには固定文言を返す
+      console.error(e)
+      end(res, 500, 'internal server error')
     }
   })
 

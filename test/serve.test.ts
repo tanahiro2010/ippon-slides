@@ -9,6 +9,10 @@ import type { ServeResult } from '../src/serve.ts'
 const dir = mkdtempSync(join(tmpdir(), 'ippon-serve-'))
 const md = join(dir, 'd.md')
 writeFileSync(md, '# タイトル\n\n本文\n\n::note::\n\nメモA\n\n---\n\n## 2枚目\n\nx\n')
+// スライドと同じフォルダに置かれがちなファイル（漏れてはいけない / 画像は配信してよい）
+writeFileSync(join(dir, 'config.json'), '{"secret":"API_KEY"}')
+writeFileSync(join(dir, '.env'), 'TOKEN=xxx')
+writeFileSync(join(dir, 'pic.png'), 'PNGDATA')
 
 let r: ServeResult
 before(async () => {
@@ -70,6 +74,20 @@ test('POST /cmd が SSE 購読者へ配信される', async () => {
   const buf = await Promise.race([read, new Promise<string>((res) => setTimeout(() => res(''), 1000))])
   ac.abort()
   assert.match(buf, /"type":"go".*"n":1|"n":1.*"type":"go"/)
+})
+
+test('静的配信は画像だけ。ソースや設定ファイルは漏らさない（トークン不要の経路）', async () => {
+  // 画像は配信してよい
+  const png = await get('/pic.png')
+  assert.equal(png.status, 200)
+  assert.equal(png.body, 'PNGDATA')
+  // Markdown ソース（::note:: を含む）・設定・ドットファイルは 404
+  assert.equal((await get('/d.md')).status, 404)
+  assert.equal((await get('/config.json')).status, 404)
+  assert.equal((await get('/.env')).status, 404)
+  // パストラバーサル（素・URL エンコードとも）
+  assert.equal((await get('/../../../etc/passwd')).status, 404)
+  assert.equal((await get('/%2e%2e/%2e%2e/etc/passwd')).status, 404)
 })
 
 test('state は保持され、後から繋いだ購読者にも即届く', async () => {
