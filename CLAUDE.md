@@ -33,6 +33,7 @@ Pipeline: `cli.ts` → `render.ts` → `markdown.ts` → `highlight.ts`, plus `p
   - A first line like `::center bg=blue size=2::` is a directive line. It only counts when every token matches `DIRECTIVES`; otherwise it's a normal paragraph.
   - `::right::` splits the slide into two columns. A leading heading is lifted above the columns. An optional `left-wide` / `right-wide` keyword (`::right right-wide::`) changes the 1:1 ratio to 1.4:1 / 1:1.4.
   - `-# ` marks a small note.
+  - `::note::` diverts everything after it to a speaker note. `slide()` returns `{ section, note }` and `parse()` collects a `notes[]` array parallel to `sections[]`; the note is **not** put in the slide DOM (so hidden elements never affect slide CSS like `:last-child`). `render.ts` serializes `notes` into a `<script id="notes" type="application/json">` blob that the presenter view reads.
   - `!! ` at the start of a line inside a code block highlights that line.
 - **`highlight.ts`** is a per-line regex tokenizer. Each language is a `Rule[]` table and `LANGS` maps aliases to tables. Tokens never span lines. `console` has its own handling: `$ ` lines are commands, `Error` lines are errors. Add a language by adding a rule table and its aliases.
 - **`render.ts`** wraps the sections in the HTML template. At runtime it reads `assets/style.css` and `assets/deck.js` via `../assets` relative to the module, a path that works from both `src/` and `dist/`. The `<head>` also links the Noto Sans JP webfont from Google Fonts so the body font matches on non-Apple platforms (headings use `--slide-display-font`, which falls back to the body font when the display face is absent). It also rewrites relative `<img src>` paths:
@@ -45,7 +46,7 @@ Pipeline: `cli.ts` → `render.ts` → `markdown.ts` → `highlight.ts`, plus `p
   - `ippon slide.md` is shorthand for `ippon build slide.md`.
   - `init` writes the `SAMPLE` deck. The CLI test expects it to produce exactly 9 slides, so update the test if you change the sample.
   - Watch mode watches the parent directories, not the files, because some editors save by replacing the file.
-- **`assets/style.css`** holds the deck's look. Users override its CSS variables (`--slide-accent`, `--slide-accent-2`, `--slide-display-font`, `--slide-size`) through `--css`. `deck.ts` handles keyboard, click, and swipe navigation, the `#N` URL hash, the overview grid (`o`), copy buttons on code blocks, the timer (which starts after leaving the title slide), and the presenter view (`p`): a second window (`window.name === 'ippon-presenter'`) that shows the current/next slide, `::note::` notes, and a timer, kept in sync with the main window via `postMessage`.
+- **`assets/style.css`** holds the deck's look. Users override its CSS variables (`--slide-accent`, `--slide-accent-2`, `--slide-display-font`, `--slide-size`) through `--css`. `deck.ts` handles keyboard, click, and swipe navigation, the `#N` URL hash, the overview grid (`o`), copy buttons on code blocks, the timer (which starts after leaving the title slide), and the presenter view (`p`): a second window (`window.name === 'ippon-presenter'`) that shows the current/next slide, the `::note::` notes (read from the `#notes` JSON blob), and a timer, kept in sync with the main window via `postMessage`.
 
 ## Conventions
 

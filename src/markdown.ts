@@ -29,6 +29,8 @@ export interface Parsed {
   meta: Meta
   /** スライドごとの `<section>` */
   sections: string[]
+  /** スライドごとの発表者ノート（::note:: 以降の HTML。無ければ ''）。sections と同じ並び */
+  notes: string[]
 }
 
 // ---------------------------------------------------------------
@@ -197,17 +199,17 @@ export function splitSlides(md: string): string[] {
   return slides.filter((s) => s.trim())
 }
 
-export function slide(src: string): string {
+export function slide(src: string): { section: string; note: string } {
   const classes = ['slide']
   let style = ''
   let body = src.replace(/^\s+/, '')
 
-  // 発表者ノート（::note:: 以降。本番スライドには出さない）
-  let notes = ''
+  // 発表者ノート（::note:: 以降）。本番スライドの DOM には入れず、別で返す
+  let note = ''
   const noteParts = body.split(/^::note::[ \t]*$/m)
   if (noteParts.length > 1) {
     body = noteParts[0]!
-    notes = blocks(noteParts.slice(1).join('\n').trim())
+    note = blocks(noteParts.slice(1).join('\n').trim())
   }
 
   const d = body.match(/^::([^:]+)::[ \t]*(\n|$)/)
@@ -242,9 +244,8 @@ export function slide(src: string): string {
     html = blocks(body)
   }
 
-  return `<section class="${classes.join(' ')}"${style ? ` style="${style}"` : ''}>${html}${
-    notes ? `<aside class="notes">${notes}</aside>` : ''
-  }</section>`
+  const section = `<section class="${classes.join(' ')}"${style ? ` style="${style}"` : ''}>${html}</section>`
+  return { section, note }
 }
 
 export function frontmatter(md: string): [Meta, string] {
@@ -261,5 +262,6 @@ export function frontmatter(md: string): [Meta, string] {
 /** Markdown 全体 → { meta, sections } */
 export function parse(md: string): Parsed {
   const [meta, body] = frontmatter(md.replace(/\r\n/g, '\n'))
-  return { meta, sections: splitSlides(body).map(slide) }
+  const slides = splitSlides(body).map(slide)
+  return { meta, sections: slides.map((s) => s.section), notes: slides.map((s) => s.note) }
 }

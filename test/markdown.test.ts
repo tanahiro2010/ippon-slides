@@ -46,17 +46,18 @@ test('-# は注釈', () => {
   assert.match(s, /<p class="note">small<\/p>/)
 })
 
-test('::note:: 以降は発表者ノート（本番には出ない）', () => {
-  const [s = ''] = parse('hello\n\n::note::\n\nメモ\n').sections
-  assert.match(s, /<p>hello<\/p><aside class="notes"><p>メモ<\/p><\/aside><\/section>$/)
-  assert.doesNotMatch(s, /::/)
+test('::note:: 以降は発表者ノート（本番 section には出ず notes に入る）', () => {
+  const { sections, notes } = parse('hello\n\n::note::\n\nメモ\n')
+  assert.equal(sections[0], '<section class="slide"><p>hello</p></section>')
+  assert.equal(notes[0], '<p>メモ</p>')
 })
 
 test('::note:: と ::right:: は共存できる', () => {
-  const [s = ''] = parse('- a\n\n::right::\n\nb\n\n::note::\n\nメモ\n').sections
+  const { sections, notes } = parse('- a\n\n::right::\n\nb\n\n::note::\n\nメモ\n')
+  const s = sections[0] ?? ''
   assert.match(s, /<div class="cols">/)
-  assert.match(s, /<aside class="notes"><p>メモ<\/p><\/aside><\/section>$/)
-  assert.doesNotMatch(s, /::/)
+  assert.doesNotMatch(s, /notes|::/)
+  assert.equal(notes[0], '<p>メモ</p>')
 })
 
 test('入れ子のリスト', () => {

@@ -166,12 +166,12 @@ export function slide(src) {
     const classes = ['slide'];
     let style = '';
     let body = src.replace(/^\s+/, '');
-    // 発表者ノート（::note:: 以降。本番スライドには出さない）
-    let notes = '';
+    // 発表者ノート（::note:: 以降）。本番スライドの DOM には入れず、別で返す
+    let note = '';
     const noteParts = body.split(/^::note::[ \t]*$/m);
     if (noteParts.length > 1) {
         body = noteParts[0];
-        notes = blocks(noteParts.slice(1).join('\n').trim());
+        note = blocks(noteParts.slice(1).join('\n').trim());
     }
     const d = body.match(/^::([^:]+)::[ \t]*(\n|$)/);
     const tokens = d ? d[1].trim().split(/\s+/) : [];
@@ -208,7 +208,8 @@ export function slide(src) {
     else {
         html = blocks(body);
     }
-    return `<section class="${classes.join(' ')}"${style ? ` style="${style}"` : ''}>${html}${notes ? `<aside class="notes">${notes}</aside>` : ''}</section>`;
+    const section = `<section class="${classes.join(' ')}"${style ? ` style="${style}"` : ''}>${html}</section>`;
+    return { section, note };
 }
 export function frontmatter(md) {
     const m = md.replace(/^\uFEFF/, '').match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n/);
@@ -225,5 +226,6 @@ export function frontmatter(md) {
 /** Markdown 全体 → { meta, sections } */
 export function parse(md) {
     const [meta, body] = frontmatter(md.replace(/\r\n/g, '\n'));
-    return { meta, sections: splitSlides(body).map(slide) };
+    const slides = splitSlides(body).map(slide);
+    return { meta, sections: slides.map((s) => s.section), notes: slides.map((s) => s.note) };
 }

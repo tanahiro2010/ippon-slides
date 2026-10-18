@@ -21,10 +21,12 @@ function rewriteImages(html, baseDir, outDir) {
     });
 }
 export function render(md, { baseDir, outDir, css = '' }) {
-    const { meta, sections } = parse(md);
+    const { meta, sections, notes } = parse(md);
     const style = readFileSync(join(assets, 'style.css'), 'utf8') + (css ? `\n/* --css */\n${css}` : '');
     const script = readFileSync(join(assets, 'deck.js'), 'utf8');
     const body = rewriteImages(sections.join('\n'), baseDir, outDir);
+    // 発表者ノートは本番 DOM に入れず JSON で渡す（発表者ビューが読む）。</script> 対策で < をエスケープ
+    const notesJson = JSON.stringify(notes).replace(/</g, '\\u003c');
     const html = `<!doctype html>
 <html lang="${esc(meta.lang || 'ja')}">
 <head>
@@ -46,6 +48,7 @@ ${body}
 <div id="timer"></div>
 <div id="counter"></div>
 <div id="hint">← → 移動 ・ f フルスクリーン ・ o 一覧 ・ p 発表者</div>
+<script id="notes" type="application/json">${notesJson}</script>
 <script>${script}</script>
 </body>
 </html>

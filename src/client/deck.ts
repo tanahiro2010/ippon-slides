@@ -325,6 +325,13 @@
     let total = slides.length
     let startedAt: number | null = null
 
+    // 発表者ノートは <script id="notes"> の JSON から読む（スライド本体には無い）
+    let notesData: string[] = []
+    try {
+      const el = document.getElementById('notes')
+      if (el && el.textContent) notesData = JSON.parse(el.textContent)
+    } catch {}
+
     function fitPreview(frame: HTMLElement, scale: HTMLElement): void {
       const w = window.innerWidth
       const h = window.innerHeight
@@ -347,8 +354,8 @@
       const hasNext = curIdx + 1 < total
       nxt.label.textContent = hasNext ? '次へ  ' + (curIdx + 2) + ' / ' + total : 'おわり'
       setPreview(nxt.frame, nxt.scale, hasNext ? curIdx + 1 : -1)
-      const note = slides[curIdx]?.querySelector('.notes')
-      notesEl.innerHTML = note ? note.innerHTML : '<p class="pv-empty">（ノートなし）</p>'
+      const note = notesData[curIdx]
+      notesEl.innerHTML = note ? note : '<p class="pv-empty">（ノートなし）</p>'
     }
     function tick(): void {
       elapsedEl.textContent = startedAt == null ? '0:00' : fmt(Date.now() - startedAt)
