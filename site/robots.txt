@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://tanahiro2010.github.io/ippon-slides/sitemap.xml
+Sitemap: https://ippon.under18.dev/sitemap.xml
