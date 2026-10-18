@@ -27,6 +27,55 @@
     return m + ':' + (s < 10 ? '0' : '') + s
   }
 
+  // ---------- Spotlight / Zoom（画像・コードをクリックで拡大） ----------
+
+  let zoomEl: HTMLElement | null = null
+  function closeZoom(): void {
+    if (zoomEl) {
+      zoomEl.remove()
+      zoomEl = null
+    }
+  }
+  function openZoom(content: HTMLElement): void {
+    closeZoom()
+    const ov = div('zoom')
+    ov.appendChild(content)
+    ov.addEventListener('click', () => closeZoom()) // 背景クリックで閉じる
+    document.body.appendChild(ov)
+    zoomEl = ov
+  }
+  function openImageZoom(img: HTMLImageElement): void {
+    const big = document.createElement('img')
+    big.src = img.currentSrc || img.src
+    big.alt = img.alt
+    openZoom(big)
+  }
+  function openCodeZoom(pre: HTMLElement): void {
+    const box = pre.cloneNode(true) as HTMLElement
+    box.querySelector('.copy-btn')?.remove()
+    box.classList.add('zoom-code')
+    const code = box.querySelector('code')
+    if (code) {
+      // 行ごとに分けてクリックでスポットライトできるようにする
+      // （ハイライトのトークンは行をまたがないので innerHTML を改行で割れる）
+      const lines = code.innerHTML.split('\n')
+      code.textContent = ''
+      for (const ln of lines) {
+        const line = div('zc-line')
+        line.innerHTML = ln.length ? ln : '&#8203;'
+        line.addEventListener('click', (e) => {
+          e.stopPropagation()
+          line.classList.toggle('spot')
+          box.classList.toggle('dimmed', !!box.querySelector('.zc-line.spot'))
+        })
+        code.appendChild(line)
+      }
+    }
+    // コード内のクリックは閉じない（行スポットライトを操作するため）
+    box.addEventListener('click', (e) => e.stopPropagation())
+    openZoom(box)
+  }
+
   // 別ウィンドウで開いたときは発表者ビューとして動く（本番のナビは動かさない）
   if (window.name === 'ippon-presenter') {
     presenterMode()
@@ -240,6 +289,10 @@
 
   document.addEventListener('keydown', (e) => {
     if (e.metaKey || e.ctrlKey || e.altKey) return
+    if (zoomEl) {
+      if (e.key === 'Escape') closeZoom()
+      return
+    }
     if (ovOpen) {
       if (e.key === 'Escape' || e.key === 'o') closeOverview()
       return
@@ -351,6 +404,22 @@
         }
       })
       pre.appendChild(btn)
+
+      // クリックでコードを拡大（文字選択中とコピーボタンは邪魔しない）
+      pre.addEventListener('click', (e) => {
+        if (e.target instanceof Element && e.target.closest('.copy-btn')) return
+        if (String(window.getSelection() || '')) return
+        e.stopPropagation()
+        openCodeZoom(pre)
+      })
+    })
+
+    // 画像はクリックで拡大
+    s.querySelectorAll<HTMLImageElement>('img').forEach((img) => {
+      img.addEventListener('click', (e) => {
+        e.stopPropagation()
+        openImageZoom(img)
+      })
     })
   })
 
