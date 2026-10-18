@@ -1,0 +1,50 @@
+# タグ (v1.2.3) を push したら npm publish + GitHub Release
+#
+# npm への publish は Trusted Publishing（OIDC）を使うのでトークン不要。
+# 事前に npmjs.com のパッケージ設定で Trusted Publisher を登録しておくこと:
+#   Settings → Trusted Publisher → GitHub Actions
+#   Repository: tanahiro2010/ippon-slides / Workflow: release.yml
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write # GitHub Release の作成
+  id-token: write # npm Trusted Publishing（OIDC）と provenance
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          registry-url: 'https://registry.npmjs.org'
+          cache: npm
+      # Trusted Publishing は npm 11.5.1+ が必要
+      - run: npm install -g npm@latest
+      - run: npm ci
+
+      # タグ (v1.2.3 → 1.2.3) と package.json の version が一致するか確認
+      - name: Verify version matches tag
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          PKG="$(node -p "require('./package.json').version")"
+          if [ "$TAG" != "$PKG" ]; then
+            echo "::error::タグ ($TAG) と package.json ($PKG) のバージョンが一致しません"
+            exit 1
+          fi
+
+      - run: npm run typecheck
+      - run: npm test
+
+      # Trusted Publishing: トークン不要。provenance は自動で付く
+      - run: npm publish
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release create "$GITHUB_REF_NAME" --generate-notes
