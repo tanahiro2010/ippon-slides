@@ -14,11 +14,11 @@
   "author": "tanahiro2010",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/tanahiro2010/ippon-slides.git"
+    "url": "git+https://github.com/under18dev/ippon-slides.git"
   },
-  "homepage": "https://github.com/tanahiro2010/ippon-slides#readme",
+  "homepage": "https://github.com/under18dev/ippon-slides#readme",
   "bugs": {
-    "url": "https://github.com/tanahiro2010/ippon-slides/issues"
+    "url": "https://github.com/under18dev/ippon-slides/issues"
   },
   "type": "module",
   "bin": {

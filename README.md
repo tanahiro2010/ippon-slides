@@ -132,7 +132,7 @@ const app = new Hono()
 結果（ステータス・レスポンスタイム・ヘッダー・JSON ボディ）が表示されます。
 
 ```md
-::http method=GET url=https://api.github.com/repos/tanahiro2010/ippon-slides::
+::http method=GET url=https://api.github.com/repos/under18dev/ippon-slides::
 ```
 
 レスポンスは **ビルド時に Node 側で取得して焼き込む**ので、CORS に関係なくどんな API

@@ -4,7 +4,7 @@
 表示する機能です。API 紹介やデモに向いています。
 
 ```md
-::http method=GET url=https://api.github.com/repos/tanahiro2010/ippon-slides::
+::http method=GET url=https://api.github.com/repos/under18dev/ippon-slides::
 ```
 
 - `method` を省略すると `GET` です。

@@ -18,7 +18,7 @@ ippon-slides への貢献を歓迎します 🎉
 - パッケージマネージャは npm。
 
 ```sh
-git clone https://github.com/tanahiro2010/ippon-slides.git
+git clone https://github.com/under18dev/ippon-slides.git
 cd ippon-slides
 npm install
 ```
