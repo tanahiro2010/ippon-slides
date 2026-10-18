@@ -394,6 +394,157 @@ body {
   opacity: 1;
 }
 
+/* ---------- ::http:: プレイグラウンド ---------- */
+
+.slide .http {
+  border: 1px solid var(--slide-border);
+  border-radius: 10px;
+  overflow: hidden;
+  margin: 0 0 1rem;
+  font-size: calc(clamp(0.85rem, 1.5vw, 1.1rem) * var(--slide-size, 1));
+}
+.http-req {
+  display: flex;
+  align-items: center;
+  gap: 0.6em;
+  padding: 0.6em 0.9em;
+  background: var(--slide-code-bg);
+  border-bottom: 1px solid var(--slide-border);
+}
+.http-method {
+  font-family: var(--slide-mono);
+  font-weight: 700;
+  font-size: 0.85em;
+  padding: 0.15em 0.6em;
+  border-radius: 5px;
+  background: rgba(127, 127, 127, 0.2);
+  color: var(--slide-fg);
+  letter-spacing: 0.03em;
+}
+.http-method.m-get {
+  color: #61afef;
+}
+.http-method.m-post {
+  color: #98c379;
+}
+.http-method.m-put,
+.http-method.m-patch {
+  color: #e5c07b;
+}
+.http-method.m-delete {
+  color: #ef5350;
+}
+.http-url {
+  font-family: var(--slide-mono);
+  font-size: 0.9em;
+  color: var(--slide-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+}
+.http-send {
+  flex: none;
+  padding: 0.25em 0.9em;
+  font: inherit;
+  font-size: 0.8em;
+  color: #ddd;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  cursor: pointer;
+}
+.light .http-send {
+  color: #333;
+  background: rgba(0, 0, 0, 0.06);
+  border-color: rgba(0, 0, 0, 0.18);
+}
+.http-send:hover {
+  background: var(--slide-accent);
+  border-color: var(--slide-accent);
+  color: #fff;
+}
+.http-send:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+.http-res {
+  padding: 0.7em 0.9em;
+}
+.http-status {
+  display: flex;
+  align-items: baseline;
+  gap: 0.7em;
+  font-family: var(--slide-mono);
+  margin-bottom: 0.6em;
+}
+.http-code {
+  font-weight: 700;
+}
+.http-code.s-2xx {
+  color: #98c379;
+}
+.http-code.s-3xx {
+  color: #61afef;
+}
+.http-code.s-4xx {
+  color: #e5c07b;
+}
+.http-code.s-1xx,
+.http-code.s-5xx {
+  color: #ef5350;
+}
+.http-statustext {
+  color: var(--slide-fg);
+}
+.http-time {
+  margin-left: auto;
+  color: var(--slide-muted);
+  font-variant-numeric: tabular-nums;
+}
+.http-errmsg {
+  color: #ef5350;
+  font-weight: 600;
+}
+.http-headers {
+  margin-bottom: 0.6em;
+}
+.http-headers summary {
+  cursor: pointer;
+  color: var(--slide-muted);
+  font-size: 0.85em;
+  user-select: none;
+}
+.http-headers table {
+  margin: 0.5em 0 0;
+  font-family: var(--slide-mono);
+  font-size: 0.8em;
+  border-collapse: collapse;
+}
+.http-headers td {
+  padding: 0.15em 0.9em 0.15em 0;
+  border: 0;
+  vertical-align: top;
+  word-break: break-all;
+}
+.http-headers .http-hk {
+  color: #56b6c2;
+  white-space: nowrap;
+}
+.http-headers .http-hv {
+  color: var(--slide-muted);
+}
+.slide .http-res pre {
+  margin: 0;
+  max-height: 42vh;
+}
+.http-msg {
+  color: var(--slide-muted);
+  font-size: 0.85em;
+  margin: 0.5em 0 0;
+}
+
 /* ---------- chrome ---------- */
 
 #progress {
@@ -670,7 +821,8 @@ body.presenter #overview {
   #hint,
   #overview,
   #presenter,
-  .copy-btn {
+  .copy-btn,
+  .http-send {
     display: none !important;
   }
 }

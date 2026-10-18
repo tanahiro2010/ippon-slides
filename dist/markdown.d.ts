@@ -8,13 +8,36 @@ export interface Parsed {
     /** スライドごとの発表者ノート（::note:: 以降の HTML。無ければ ''）。sections と同じ並び */
     notes: string[];
 }
+/** `::http method=GET url=...::` のリクエスト指定 */
+export interface HttpSpec {
+    method: string;
+    url: string;
+}
+/** ビルド時に取得したレスポンス（http.ts が埋める）。error があれば取得失敗 */
+export interface HttpResult {
+    status?: number;
+    statusText?: string;
+    ms?: number;
+    headers?: [string, string][];
+    contentType?: string;
+    body?: string;
+    truncated?: boolean;
+    error?: string;
+}
+/** method+url → 取得結果。同じリクエストは 1 エントリに集約される */
+export type HttpMap = Map<string, HttpResult>;
+export declare const httpKey: (s: HttpSpec) => string;
 export declare function inline(text: string): string;
-export declare function blocks(src: string): string;
+export declare function blocks(src: string, http?: HttpMap): string;
+/** `::http method=GET url=...::` 行をパースする。url が無ければ null（= ただの段落） */
+export declare function parseHttp(line: string): HttpSpec | null;
+/** Markdown 全体から `::http::` のリクエストを拾う（コードフェンス内は無視）。http.ts が使う */
+export declare function scanHttp(md: string): HttpSpec[];
 export declare function splitSlides(md: string): string[];
-export declare function slide(src: string): {
+export declare function slide(src: string, http?: HttpMap): {
     section: string;
     note: string;
 };
 export declare function frontmatter(md: string): [Meta, string];
 /** Markdown 全体 → { meta, sections } */
-export declare function parse(md: string): Parsed;
+export declare function parse(md: string, http?: HttpMap): Parsed;

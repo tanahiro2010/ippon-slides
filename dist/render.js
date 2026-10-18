@@ -20,8 +20,8 @@ function rewriteImages(html, baseDir, outDir) {
         return pre + url + post;
     });
 }
-export function render(md, { baseDir, outDir, css = '' }) {
-    const { meta, sections, notes } = parse(md);
+export function render(md, { baseDir, outDir, css = '', http }) {
+    const { meta, sections, notes } = parse(md, http);
     const style = readFileSync(join(assets, 'style.css'), 'utf8') + (css ? `\n/* --css */\n${css}` : '');
     const script = readFileSync(join(assets, 'deck.js'), 'utf8');
     const body = rewriteImages(sections.join('\n'), baseDir, outDir);

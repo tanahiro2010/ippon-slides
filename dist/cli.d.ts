@@ -6,6 +6,7 @@ export interface Options {
     watch?: boolean;
     help?: boolean;
     version?: boolean;
+    noFetch?: boolean;
     output?: string;
     css?: string;
     browserPath?: string;

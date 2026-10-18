@@ -1,3 +1,4 @@
+import type { HttpMap } from './markdown.ts';
 export interface RenderOptions {
     /** 画像の相対パスの基準（= Markdown のあるディレクトリ） */
     baseDir: string;
@@ -5,10 +6,12 @@ export interface RenderOptions {
     outDir?: string;
     /** 追加の CSS（--css） */
     css?: string;
+    /** ::http:: のビルド時取得結果（省略すると未取得状態で焼き込む） */
+    http?: HttpMap;
 }
 export interface RenderResult {
     html: string;
     /** スライドの枚数 */
     count: number;
 }
-export declare function render(md: string, { baseDir, outDir, css }: RenderOptions): RenderResult;
+export declare function render(md: string, { baseDir, outDir, css, http }: RenderOptions): RenderResult;

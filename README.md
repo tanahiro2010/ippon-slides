@@ -31,6 +31,7 @@ ippon build slide.md --html --pdf -o dist/
 | `-o, --output <path>` | 出力先。ディレクトリを指定するとその中に `<input>.html` / `.pdf` を作る。`--html --pdf` を両方指定したときは拡張子だけ差し替える |
 | `-w, --watch` | Markdown と `--css` の変更を監視して再ビルドする |
 | `--css <file>` | 追加の CSS（色やフォントの上書きなど） |
+| `--no-fetch` | `::http::` のレスポンスをビルド時に取得しない |
 | `--browser-path <path>` | PDF に使うブラウザ。環境変数 `CHROME_PATH` でも指定できる |
 
 `ippon slide.md` は `ippon build slide.md` の省略形です。
@@ -93,12 +94,28 @@ const app = new Hono()
 | `::right::` | ここから右カラム。先頭の見出しはカラムの上に出る |
 | `::right left-wide::` / `::right right-wide::` | カラム幅を 1.4:1 / 1:1.4 にする |
 | `::note::` | この行以降は発表者ノート。本番には出ず発表者ビュー（`p`）だけに出る |
+| `::http method=GET url=...::` | HTTP リクエストのプレイグラウンド（下記） |
 | `-# 注釈` | 小さい注釈 |
 | ` ```hcl ` | コード。`hcl` / `console` / `sh` / `json` / `js` / `ts` をハイライト |
 | `!! ` | コードの行頭に付けるとその行を強調 |
 
 指示は `::center bg=blue size=2::` のようにまとめて書けます。
 `console` のコードは `$ ` で始まる行をコマンド、`Error` を含む行をエラーとして色分けします。
+
+### HTTP プレイグラウンド
+
+`::http method=GET url=https://...::` と書くと、そのスライドに HTTP リクエストの
+結果（ステータス・レスポンスタイム・ヘッダー・JSON ボディ）が表示されます。
+
+```md
+::http method=GET url=https://api.github.com/repos/tanahiro2010/ippon-slides::
+```
+
+レスポンスは **ビルド時に Node 側で取得して焼き込む**ので、CORS に関係なくどんな API
+でも表示でき、オフラインや PDF でもそのまま映ります。スライド上の「再送信」ボタンを押すと
+ブラウザからライブで叩き直せます（この場合は相手が CORS を許可している API のみ成功し、
+失敗したときはビルド時のスナップショットに戻ります）。`method` を省略すると GET です。
+ビルド時の取得を止めたいときは `--no-fetch` を付けます。
 
 ## 発表中の操作
 

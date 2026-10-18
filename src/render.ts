@@ -5,6 +5,7 @@ import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { esc } from './highlight.ts'
 import { parse } from './markdown.ts'
+import type { HttpMap } from './markdown.ts'
 
 const assets = join(dirname(fileURLToPath(import.meta.url)), '..', 'assets')
 
@@ -17,6 +18,8 @@ export interface RenderOptions {
   outDir?: string
   /** 追加の CSS（--css） */
   css?: string
+  /** ::http:: のビルド時取得結果（省略すると未取得状態で焼き込む） */
+  http?: HttpMap
 }
 
 export interface RenderResult {
@@ -39,8 +42,8 @@ function rewriteImages(html: string, baseDir: string, outDir?: string): string {
   })
 }
 
-export function render(md: string, { baseDir, outDir, css = '' }: RenderOptions): RenderResult {
-  const { meta, sections, notes } = parse(md)
+export function render(md: string, { baseDir, outDir, css = '', http }: RenderOptions): RenderResult {
+  const { meta, sections, notes } = parse(md, http)
   const style = readFileSync(join(assets, 'style.css'), 'utf8') + (css ? `\n/* --css */\n${css}` : '')
   const script = readFileSync(join(assets, 'deck.js'), 'utf8')
   const body = rewriteImages(sections.join('\n'), baseDir, outDir)

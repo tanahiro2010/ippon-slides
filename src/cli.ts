@@ -1,6 +1,8 @@
 import { existsSync, mkdirSync, readFileSync, statSync, watch, writeFileSync } from 'node:fs'
 import { basename, dirname, extname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { fetchAll } from './http.ts'
+import { scanHttp } from './markdown.ts'
 import { toPdf } from './pdf.ts'
 import { render } from './render.ts'
 
@@ -20,6 +22,7 @@ build のオプション:
                              ディレクトリを指定するとその中に <input>.html / .pdf を作る
   -w, --watch                Markdown と --css の変更を監視して再ビルドする
       --css <file>           追加の CSS（色やフォントの上書きなど）
+      --no-fetch             ::http:: のレスポンスをビルド時に取得しない
       --browser-path <path>  PDF に使うブラウザ（環境変数 CHROME_PATH でも可）
 
   -h, --help                 ヘルプ
@@ -44,15 +47,16 @@ export interface Options {
   watch?: boolean
   help?: boolean
   version?: boolean
+  noFetch?: boolean
   output?: string
   css?: string
   browserPath?: string
 }
 
-type Flag = 'html' | 'pdf' | 'watch' | 'help' | 'version'
+type Flag = 'html' | 'pdf' | 'watch' | 'help' | 'version' | 'noFetch'
 type Value = 'output' | 'css' | 'browserPath'
 
-const FLAGS: Record<string, Flag> = { '--html': 'html', '--pdf': 'pdf', '-w': 'watch', '--watch': 'watch', '-h': 'help', '--help': 'help', '-v': 'version', '--version': 'version' }
+const FLAGS: Record<string, Flag> = { '--html': 'html', '--pdf': 'pdf', '-w': 'watch', '--watch': 'watch', '--no-fetch': 'noFetch', '-h': 'help', '--help': 'help', '-v': 'version', '--version': 'version' }
 const VALUES: Record<string, Value> = { '-o': 'output', '--output': 'output', '--css': 'css', '--browser-path': 'browserPath' }
 
 export function parseArgs(argv: string[]): Options {
@@ -110,14 +114,22 @@ async function build(input: string, opts: Options): Promise<void> {
   const css = opts.css ? readFileSync(opts.css, 'utf8') : ''
   const baseDir = dirname(resolve(input))
 
+  // ::http:: は Node 側で先に叩いてレスポンスを焼き込む（CORS 無し）。--no-fetch で無効化
+  const specs = opts.noFetch ? [] : scanHttp(md)
+  const http = specs.length ? await fetchAll(specs) : undefined
+  if (specs.length) {
+    const failed = [...http!.values()].filter((r) => r.error).length
+    console.log(`${time()}   ↳ ${specs.length} 件の HTTP リクエストを取得${failed ? `（${failed} 件失敗）` : ''}`)
+  }
+
   for (const { format, path } of outputs(input, opts)) {
     mkdirSync(dirname(path), { recursive: true })
     if (format === 'html') {
-      const { html, count } = render(md, { baseDir, outDir: dirname(path), css })
+      const { html, count } = render(md, { baseDir, outDir: dirname(path), css, http })
       writeFileSync(path, html)
       console.log(`${time()} ✓ ${count} slides → ${path}`)
     } else {
-      const { html, count } = render(md, { baseDir, css })
+      const { html, count } = render(md, { baseDir, css, http })
       await toPdf(html, path, { browserPath: opts.browserPath })
       console.log(`${time()} ✓ ${count} slides → ${path}`)
     }

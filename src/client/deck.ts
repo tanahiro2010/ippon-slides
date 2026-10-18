@@ -272,6 +272,90 @@
     })
   })
 
+  // ::http:: の「再送信」ボタン：ブラウザからライブで叩く（CORS が通る相手のみ）。
+  // 失敗したらビルド時のスナップショットに戻す。
+  function escText(s: string): string {
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  }
+  function hlJson(src: string): string {
+    const re = /"(?:[^"\\]|\\.)*"|\b(?:true|false|null)\b|-?\d+(?:\.\d+)?/g
+    let out = ''
+    let last = 0
+    let m: RegExpExecArray | null
+    while ((m = re.exec(src))) {
+      out += escText(src.slice(last, m.index))
+      const tok = m[0]
+      last = m.index + tok.length
+      // 文字列で直後が : ならキー（hl-t）、それ以外の文字列は hl-s、数値と true/false/null は hl-n
+      const cls = tok[0] === '"' ? (/^\s*:/.test(src.slice(last)) ? 'hl-t' : 'hl-s') : 'hl-n'
+      out += '<span class="' + cls + '">' + escText(tok) + '</span>'
+    }
+    return out + escText(src.slice(last))
+  }
+  function httpStatusClass(status: number): string {
+    return 's-' + (status < 200 ? 1 : status < 300 ? 2 : status < 400 ? 3 : status < 500 ? 4 : 5) + 'xx'
+  }
+  function httpResultHtml(r: Response, text: string, ms: number): string {
+    let count = 0
+    let rows = ''
+    r.headers.forEach((v, k) => {
+      count++
+      rows += '<tr><td class="http-hk">' + escText(k) + '</td><td class="http-hv">' + escText(v) + '</td></tr>'
+    })
+    const ct = r.headers.get('content-type') || ''
+    let body: string
+    if (/\bjson\b/i.test(ct) || /^\s*[[{]/.test(text)) {
+      try {
+        body = '<pre data-lang="json"><code>' + hlJson(JSON.stringify(JSON.parse(text), null, 2)) + '</code></pre>'
+      } catch {
+        body = '<pre><code>' + escText(text) + '</code></pre>'
+      }
+    } else {
+      body = '<pre><code>' + escText(text) + '</code></pre>'
+    }
+    return (
+      '<div class="http-status">' +
+      '<span class="http-code ' + httpStatusClass(r.status) + '">' + r.status + '</span>' +
+      '<span class="http-statustext">' + escText(r.statusText) + '</span>' +
+      '<span class="http-time">' + ms + ' ms</span></div>' +
+      '<details class="http-headers"><summary>ヘッダー（' + count + '）</summary><table>' + rows + '</table></details>' +
+      body
+    )
+  }
+  slides.forEach((s) => {
+    s.querySelectorAll<HTMLElement>('.http').forEach((box) => {
+      const btn = box.querySelector<HTMLButtonElement>('.http-send')
+      const resEl = box.querySelector<HTMLElement>('.http-res')
+      if (!btn || !resEl) return
+      const baked = resEl.innerHTML // ビルド時スナップショット
+      const method = box.dataset.method || 'GET'
+      const url = box.dataset.url || ''
+      btn.addEventListener('click', async () => {
+        if (!url) return
+        const label = btn.textContent
+        btn.disabled = true
+        btn.textContent = '送信中…'
+        const t0 = performance.now()
+        try {
+          const r = await fetch(url, { method })
+          const text = await r.text()
+          resEl.dataset.state = 'ok'
+          resEl.innerHTML = httpResultHtml(r, text, Math.round(performance.now() - t0))
+        } catch (e) {
+          const msg = e instanceof Error ? e.message : String(e)
+          resEl.dataset.state = 'error'
+          resEl.innerHTML =
+            '<div class="http-status"><span class="http-errmsg">✗ ' + escText(msg) + '</span></div>' +
+            '<p class="http-msg">ブラウザからは CORS で取得できないことがあります。ビルド時のスナップショットを表示します。</p>' +
+            baked
+        } finally {
+          btn.disabled = false
+          btn.textContent = label
+        }
+      })
+    })
+  })
+
   const start = parseInt(location.hash.slice(1), 10)
   if (start) idx = clamp(start - 1)
   render()

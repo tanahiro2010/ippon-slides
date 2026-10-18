@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { parse } from '../src/markdown.ts'
+import { httpKey, parse, parseHttp, scanHttp } from '../src/markdown.ts'
+import type { HttpMap } from '../src/markdown.ts'
 
 test('--- でスライドを分ける（コードブロック内の --- は無視）', () => {
   const { sections } = parse('# a\n\n---\n\n```sh\n---\n```\n\n---\n\nc\n')
@@ -91,4 +92,59 @@ test('console: プロンプトとエラー', () => {
   assert.match(s, /<span class="hl-prompt">\$ <\/span><span class="hl-cmd">terraform apply<\/span>/)
   assert.match(s, /<span class="hl-err">Error: boom<\/span>/)
   assert.doesNotMatch(s, /data-lang/)
+})
+
+test('::http:: をパースする（method 省略は GET・url 必須）', () => {
+  assert.deepEqual(parseHttp('::http method=POST url=https://e.x/api::'), { method: 'POST', url: 'https://e.x/api' })
+  assert.deepEqual(parseHttp('::http url=https://e.x/api::'), { method: 'GET', url: 'https://e.x/api' })
+  assert.deepEqual(parseHttp('::http https://e.x/api::'), { method: 'GET', url: 'https://e.x/api' })
+  assert.equal(parseHttp('::http method=GET::'), null)
+  assert.equal(parseHttp('ふつうの段落'), null)
+})
+
+test('scanHttp はコードフェンス内の ::http:: を無視する', () => {
+  const md = '::http url=https://a.x::\n\n```\n::http url=https://b.x::\n```\n\n::http method=POST url=https://c.x::\n'
+  assert.deepEqual(scanHttp(md), [
+    { method: 'GET', url: 'https://a.x' },
+    { method: 'POST', url: 'https://c.x' },
+  ])
+})
+
+test('::http:: は未取得だと pending 状態で焼き込まれる', () => {
+  const [s = ''] = parse('::http url=https://e.x/api::\n').sections
+  assert.match(s, /<div class="http" data-method="GET" data-url="https:\/\/e.x\/api">/)
+  assert.match(s, /<span class="http-method m-get">GET<\/span>/)
+  assert.match(s, /<button class="http-send" type="button">再送信<\/button>/)
+  assert.match(s, /data-state="pending"/)
+})
+
+test('::http:: のレスポンスを焼き込む（ステータス色・時間・ヘッダー・JSON）', () => {
+  const spec = { method: 'GET', url: 'https://e.x/api' }
+  const http: HttpMap = new Map([
+    [
+      httpKey(spec),
+      {
+        status: 200,
+        statusText: 'OK',
+        ms: 42,
+        headers: [['content-type', 'application/json']] as [string, string][],
+        contentType: 'application/json',
+        body: '{"ok":true,"n":1}',
+      },
+    ],
+  ])
+  const [s = ''] = parse('::http url=https://e.x/api::\n', http).sections
+  assert.match(s, /data-state="ok"/)
+  assert.match(s, /<span class="http-code s-2xx">200<\/span>/)
+  assert.match(s, /<span class="http-time">42 ms<\/span>/)
+  assert.match(s, /<summary>ヘッダー（1）<\/summary>/)
+  assert.match(s, /<pre data-lang="json"><code>\{\n {2}<span class="hl-t">&quot;ok&quot;<\/span>: <span class="hl-n">true<\/span>/)
+})
+
+test('::http:: の取得失敗はエラー状態で焼き込む', () => {
+  const spec = { method: 'GET', url: 'https://e.x/api' }
+  const http: HttpMap = new Map([[httpKey(spec), { error: 'getaddrinfo ENOTFOUND e.x' }]])
+  const [s = ''] = parse('::http url=https://e.x/api::\n', http).sections
+  assert.match(s, /data-state="error"/)
+  assert.match(s, /<span class="http-errmsg">✗ getaddrinfo ENOTFOUND e.x<\/span>/)
 })

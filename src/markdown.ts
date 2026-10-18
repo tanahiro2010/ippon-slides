@@ -34,6 +34,33 @@ export interface Parsed {
 }
 
 // ---------------------------------------------------------------
+// ::http:: （HTTP リクエストのプレイグラウンド）
+// ---------------------------------------------------------------
+
+/** `::http method=GET url=...::` のリクエスト指定 */
+export interface HttpSpec {
+  method: string
+  url: string
+}
+
+/** ビルド時に取得したレスポンス（http.ts が埋める）。error があれば取得失敗 */
+export interface HttpResult {
+  status?: number
+  statusText?: string
+  ms?: number
+  headers?: [string, string][]
+  contentType?: string
+  body?: string
+  truncated?: boolean
+  error?: string
+}
+
+/** method+url → 取得結果。同じリクエストは 1 エントリに集約される */
+export type HttpMap = Map<string, HttpResult>
+
+export const httpKey = (s: HttpSpec): string => `${s.method} ${s.url}`
+
+// ---------------------------------------------------------------
 // inline
 // ---------------------------------------------------------------
 
@@ -103,7 +130,7 @@ function table(rows: string[]): string {
 
 const LIST_ITEM = /^(\s*)([-*]|\d+\.)\s+(.*)$/
 
-export function blocks(src: string): string {
+export function blocks(src: string, http?: HttpMap): string {
   const lines = src.split('\n')
   let html = ''
   let para: string[] = []
@@ -128,6 +155,15 @@ export function blocks(src: string): string {
       const attr = lang && lang !== 'console' ? ` data-lang="${esc(lang)}"` : ''
       html += `<pre${attr}><code>${highlight(body.join('\n'), lang)}</code></pre>`
       continue
+    }
+
+    if (line.startsWith('::http')) {
+      const spec = parseHttp(line)
+      if (spec) {
+        flush()
+        html += httpBlock(spec, http)
+        continue
+      }
     }
 
     if (!line.trim()) {
@@ -170,7 +206,7 @@ export function blocks(src: string): string {
       const q: string[] = []
       while (i < lines.length && lines[i]!.startsWith('> ')) q.push(lines[i++]!.slice(2))
       i--
-      html += `<blockquote>${blocks(q.join('\n'))}</blockquote>`
+      html += `<blockquote>${blocks(q.join('\n'), http)}</blockquote>`
       continue
     }
 
@@ -178,6 +214,103 @@ export function blocks(src: string): string {
   }
   flush()
   return html
+}
+
+const HTTP_LINE = /^::http[ \t]+(.+?)[ \t]*::[ \t]*$/
+
+/** `::http method=GET url=...::` 行をパースする。url が無ければ null（= ただの段落） */
+export function parseHttp(line: string): HttpSpec | null {
+  const m = line.match(HTTP_LINE)
+  if (!m) return null
+  let method = 'GET'
+  let url = ''
+  for (const tok of m[1]!.trim().split(/[ \t]+/)) {
+    const kv = tok.match(/^([A-Za-z]+)=(.+)$/)
+    if (!kv) {
+      // `::http https://...::` のように URL を裸で書いた場合も許す
+      if (/^https?:\/\//i.test(tok)) url = tok
+      continue
+    }
+    const k = kv[1]!.toLowerCase()
+    if (k === 'method') method = kv[2]!.toUpperCase()
+    else if (k === 'url') url = kv[2]!
+  }
+  return url ? { method, url } : null
+}
+
+/** Markdown 全体から `::http::` のリクエストを拾う（コードフェンス内は無視）。http.ts が使う */
+export function scanHttp(md: string): HttpSpec[] {
+  const specs: HttpSpec[] = []
+  let inFence = false
+  for (const line of md.replace(/\r\n/g, '\n').split('\n')) {
+    if (/^```/.test(line)) inFence = !inFence
+    else if (!inFence) {
+      const spec = parseHttp(line)
+      if (spec) specs.push(spec)
+    }
+  }
+  return specs
+}
+
+function statusClass(status: number): string {
+  if (status < 200) return 's-1xx'
+  if (status < 300) return 's-2xx'
+  if (status < 400) return 's-3xx'
+  if (status < 500) return 's-4xx'
+  return 's-5xx'
+}
+
+function httpBody(result: HttpResult): string {
+  const body = result.body ?? ''
+  const isJson = /\bjson\b/i.test(result.contentType || '') || /^\s*[[{]/.test(body)
+  if (isJson) {
+    try {
+      const pretty = JSON.stringify(JSON.parse(body), null, 2)
+      return `<pre data-lang="json"><code>${highlight(pretty, 'json')}</code></pre>`
+    } catch {
+      // JSON ではなかった → 素のテキストで出す
+    }
+  }
+  return `<pre><code>${esc(body)}</code></pre>`
+}
+
+/** 取得結果の `<div class="http-res">`（焼き込み済み / 未取得 / エラー） */
+function httpRes(result: HttpResult | undefined): string {
+  if (!result) {
+    return `<div class="http-res" data-state="pending"><p class="http-msg">未取得 — 「再送信」で取得します</p></div>`
+  }
+  if (result.error) {
+    return `<div class="http-res" data-state="error"><div class="http-status"><span class="http-errmsg">✗ ${esc(result.error)}</span></div></div>`
+  }
+  const status = result.status ?? 0
+  const headers = result.headers ?? []
+  return (
+    `<div class="http-res" data-state="ok">` +
+    `<div class="http-status">` +
+    `<span class="http-code ${statusClass(status)}">${status}</span>` +
+    `<span class="http-statustext">${esc(result.statusText || '')}</span>` +
+    `<span class="http-time">${result.ms ?? 0} ms</span>` +
+    `</div>` +
+    `<details class="http-headers"><summary>ヘッダー（${headers.length}）</summary><table>` +
+    headers.map(([k, v]) => `<tr><td class="http-hk">${esc(k)}</td><td class="http-hv">${esc(v)}</td></tr>`).join('') +
+    `</table></details>` +
+    httpBody(result) +
+    (result.truncated ? `<p class="http-msg">… レスポンスが長いため省略しました</p>` : '') +
+    `</div>`
+  )
+}
+
+function httpBlock(spec: HttpSpec, http?: HttpMap): string {
+  return (
+    `<div class="http" data-method="${esc(spec.method)}" data-url="${esc(spec.url)}">` +
+    `<div class="http-req">` +
+    `<span class="http-method m-${esc(spec.method.toLowerCase())}">${esc(spec.method)}</span>` +
+    `<span class="http-url">${esc(spec.url)}</span>` +
+    `<button class="http-send" type="button">再送信</button>` +
+    `</div>` +
+    httpRes(http?.get(httpKey(spec))) +
+    `</div>`
+  )
 }
 
 // ---------------------------------------------------------------
@@ -199,7 +332,7 @@ export function splitSlides(md: string): string[] {
   return slides.filter((s) => s.trim())
 }
 
-export function slide(src: string): { section: string; note: string } {
+export function slide(src: string, http?: HttpMap): { section: string; note: string } {
   const classes = ['slide']
   let style = ''
   let body = src.replace(/^\s+/, '')
@@ -209,7 +342,7 @@ export function slide(src: string): { section: string; note: string } {
   const noteParts = body.split(/^::note::[ \t]*$/m)
   if (noteParts.length > 1) {
     body = noteParts[0]!
-    note = blocks(noteParts.slice(1).join('\n').trim())
+    note = blocks(noteParts.slice(1).join('\n').trim(), http)
   }
 
   const d = body.match(/^::([^:]+)::[ \t]*(\n|$)/)
@@ -238,10 +371,10 @@ export function slide(src: string): { section: string; note: string } {
     const left = head ? first.replace(head[0], '') : first
     const cls = mod ? `cols ${mod}` : 'cols'
     html =
-      (head ? blocks(head[1]!) : '') +
-      `<div class="${cls}"><div>${blocks(left)}</div><div>${blocks(right)}</div></div>`
+      (head ? blocks(head[1]!, http) : '') +
+      `<div class="${cls}"><div>${blocks(left, http)}</div><div>${blocks(right, http)}</div></div>`
   } else {
-    html = blocks(body)
+    html = blocks(body, http)
   }
 
   const section = `<section class="${classes.join(' ')}"${style ? ` style="${style}"` : ''}>${html}</section>`
@@ -260,8 +393,8 @@ export function frontmatter(md: string): [Meta, string] {
 }
 
 /** Markdown 全体 → { meta, sections } */
-export function parse(md: string): Parsed {
+export function parse(md: string, http?: HttpMap): Parsed {
   const [meta, body] = frontmatter(md.replace(/\r\n/g, '\n'))
-  const slides = splitSlides(body).map(slide)
+  const slides = splitSlides(body).map((s) => slide(s, http))
   return { meta, sections: slides.map((s) => s.section), notes: slides.map((s) => s.note) }
 }
