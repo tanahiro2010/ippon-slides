@@ -10,6 +10,7 @@ export interface Options {
     output?: string;
     css?: string;
     browserPath?: string;
+    port?: string;
 }
 export declare function parseArgs(argv: string[]): Options;
 /** 出力先を決める */

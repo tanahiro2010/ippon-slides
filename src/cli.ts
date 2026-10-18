@@ -4,7 +4,9 @@ import { fileURLToPath } from 'node:url'
 import { fetchAll } from './http.ts'
 import { scanHttp } from './markdown.ts'
 import { toPdf } from './pdf.ts'
+import { qrTerminal } from './qr.ts'
 import { render } from './render.ts'
+import { serve } from './serve.ts'
 
 const pkg: { version: string } = JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), '..', 'package.json'), 'utf8'))
 
@@ -13,6 +15,7 @@ const HELP = `ippon v${pkg.version} — 1 枚 1 メッセージのスライド�
 使い方:
   ippon build <input.md> [options]   スライドをビルドする
   ippon <input.md> [options]         build の省略形
+  ippon serve <input.md> [options]   ローカルで配信し、スマホをリモコンにする
   ippon init [file]                  サンプルの Markdown を作る（デフォルト: slide.md）
 
 build のオプション:
@@ -25,6 +28,10 @@ build のオプション:
       --no-fetch             ::http:: のレスポンスをビルド時に取得しない
       --browser-path <path>  PDF に使うブラウザ（環境変数 CHROME_PATH でも可）
 
+serve のオプション:
+  -p, --port <n>             待ち受けポート（省略時は空きポートを自動）
+      --css <file>           追加の CSS
+
   -h, --help                 ヘルプ
   -v, --version              バージョン
 
@@ -33,6 +40,7 @@ build のオプション:
   ippon build slide.md --pdf -o dist/
   ippon build slide.md --html --pdf -o dist/talk
   ippon build slide.md --html -w
+  ippon serve slide.md
 `
 
 // ---------------------------------------------------------------
@@ -51,13 +59,14 @@ export interface Options {
   output?: string
   css?: string
   browserPath?: string
+  port?: string
 }
 
 type Flag = 'html' | 'pdf' | 'watch' | 'help' | 'version' | 'noFetch'
-type Value = 'output' | 'css' | 'browserPath'
+type Value = 'output' | 'css' | 'browserPath' | 'port'
 
 const FLAGS: Record<string, Flag> = { '--html': 'html', '--pdf': 'pdf', '-w': 'watch', '--watch': 'watch', '--no-fetch': 'noFetch', '-h': 'help', '--help': 'help', '-v': 'version', '--version': 'version' }
-const VALUES: Record<string, Value> = { '-o': 'output', '--output': 'output', '--css': 'css', '--browser-path': 'browserPath' }
+const VALUES: Record<string, Value> = { '-o': 'output', '--output': 'output', '--css': 'css', '--browser-path': 'browserPath', '-p': 'port', '--port': 'port' }
 
 export function parseArgs(argv: string[]): Options {
   const opts: Options = { _: [] }
@@ -153,6 +162,27 @@ function watchBuild(input: string, opts: Options): void {
     })
   }
   console.log(`watching ${files.join(', ')} ...`)
+}
+
+// ---------------------------------------------------------------
+// serve
+// ---------------------------------------------------------------
+
+async function runServe(input: string, opts: Options): Promise<void> {
+  let port: number | undefined
+  if (opts.port !== undefined) {
+    port = Number(opts.port)
+    if (!Number.isInteger(port) || port < 0 || port > 65535) throw new Error(`ポートが不正です: ${opts.port}`)
+  }
+  const r = await serve(input, { port, css: opts.css })
+  console.log(qrTerminal(r.remoteUrls[0]!))
+  console.log(`✓ ippon serve で配信中`)
+  console.log(``)
+  console.log(`  この PC で開く:   ${r.deckUrl}`)
+  for (const u of r.remoteUrls) console.log(`  スマホのリモコン: ${u}`)
+  console.log(``)
+  console.log(`  ↑ の QR をスマホのカメラで読み取るとリモコンになります（PC と同じ Wi-Fi に接続）`)
+  console.log(`  発表者ビュー（p）にも QR が出ます。Ctrl+C で終了`)
 }
 
 // ---------------------------------------------------------------
@@ -265,6 +295,13 @@ export async function main(argv: string[]): Promise<void> {
 
   let rest = args
   if (cmd === 'init') return init(rest[0])
+  if (cmd === 'serve') {
+    const input = rest[0]
+    if (!input) throw new Error('入力の Markdown を指定してください（例: ippon serve slide.md）')
+    if (rest.length > 1) throw new Error(`入力は 1 つだけ指定してください: ${rest.join(' ')}`)
+    if (!existsSync(input)) throw new Error(`${input} が見つかりません`)
+    return runServe(input, opts)
+  }
   if (cmd !== 'build') rest = [cmd, ...rest] // `ippon slide.md` は build の省略形
 
   const input = rest[0]

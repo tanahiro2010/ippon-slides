@@ -2,3 +2,4 @@ node_modules/
 *.tgz
 dist/
 assets/deck.js
+assets/remote.js

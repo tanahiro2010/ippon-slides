@@ -10,5 +10,5 @@
     "outDir": "../../assets",
     "removeComments": false
   },
-  "include": ["deck.ts"]
+  "include": ["deck.ts", "remote.ts"]
 }

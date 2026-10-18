@@ -9,6 +9,11 @@
   const slides = Array.from(document.querySelectorAll<HTMLElement>('#deck .slide'))
   if (!slides.length) return
 
+  // ippon serve のときだけ注入される設定（スマホリモコン用）。無ければ従来どおり何もしない
+  const serveCfg = (
+    window as unknown as { __ippon?: { token: string; remoteUrl: string; qr: string } }
+  ).__ippon
+
   const $ = (id: string) => document.getElementById(id)!
   const div = (className: string) => {
     const el = document.createElement('div')
@@ -63,6 +68,7 @@
     progress.style.width = ((idx + 1) / slides.length) * 100 + '%'
     syncTimer()
     broadcast()
+    netPublish()
   }
   function go(n: number): void {
     n = clamp(n)
@@ -96,6 +102,75 @@
     if (m.ippon === 'hello') broadcast()
     else if (m.ippon === 'go' && typeof m.n === 'number') go(m.n)
   })
+
+  // ---------- serve（スマホリモコン：SSE で受信、/cmd へ state 送信） ----------
+
+  function netPublish(): void {
+    if (!serveCfg) return
+    const running = startedAt != null
+    fetch('/cmd?t=' + encodeURIComponent(serveCfg.token), {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        type: 'state',
+        idx,
+        total: slides.length,
+        elapsed: running ? Date.now() - startedAt! : 0,
+        running,
+      }),
+    }).catch(() => {})
+  }
+  function resetTimer(): void {
+    startedAt = idx === 0 ? null : Date.now()
+    syncTimer()
+    netPublish()
+  }
+  function initServe(): void {
+    if (!serveCfg) return
+    const es = new EventSource('/events?t=' + encodeURIComponent(serveCfg.token))
+    es.onmessage = (e) => {
+      let m: { type?: string; n?: number; action?: string }
+      try {
+        m = JSON.parse(e.data)
+      } catch {
+        return
+      }
+      if (m.type === 'go' && typeof m.n === 'number') go(m.n)
+      else if (m.type === 'timer' && m.action === 'reset') resetTimer()
+    }
+  }
+
+  // QR を全画面で出す（r キー）。スマホのカメラで読めばリモコンになる
+  let qrOverlay: HTMLElement | null = null
+  function toggleQr(): void {
+    if (!serveCfg) return
+    if (qrOverlay) {
+      qrOverlay.remove()
+      qrOverlay = null
+      return
+    }
+    const ov = div('')
+    ov.style.cssText =
+      'position:fixed;inset:0;z-index:40;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;background:rgba(0,0,0,.88);cursor:pointer'
+    const box = div('')
+    box.style.cssText = 'background:#fff;padding:16px;border-radius:12px;width:min(60vmin,360px)'
+    box.innerHTML = serveCfg.qr
+    const svg = box.querySelector('svg')
+    if (svg) svg.setAttribute('style', 'width:100%;height:auto;display:block')
+    const url = div('')
+    url.style.cssText =
+      'color:#fff;font-family:system-ui,sans-serif;font-size:1rem;word-break:break-all;max-width:80vw;text-align:center'
+    url.textContent = serveCfg.remoteUrl
+    const hint = div('')
+    hint.style.cssText = 'color:#aaa;font-family:system-ui,sans-serif;font-size:.85rem'
+    hint.textContent = 'スマホのカメラで読み取るとリモコンになります（同じ Wi-Fi に接続）'
+    ov.appendChild(box)
+    ov.appendChild(url)
+    ov.appendChild(hint)
+    ov.addEventListener('click', () => toggleQr())
+    document.body.appendChild(ov)
+    qrOverlay = ov
+  }
 
   // ---------- 一覧 ----------
 
@@ -169,6 +244,10 @@
       if (e.key === 'Escape' || e.key === 'o') closeOverview()
       return
     }
+    if (qrOverlay) {
+      if (e.key === 'Escape' || e.key === 'r') toggleQr()
+      return
+    }
     switch (e.key) {
       case 'ArrowRight':
       case 'PageDown':
@@ -196,6 +275,9 @@
         break
       case 'p':
         openPresenter()
+        break
+      case 'r':
+        toggleQr()
         break
       case 'Escape':
         if (!document.fullscreenElement) openOverview()
@@ -360,6 +442,12 @@
   if (start) idx = clamp(start - 1)
   render()
 
+  if (serveCfg) {
+    const hint = $('hint')
+    if (hint) hint.textContent += ' ・ r リモコン'
+    initServe()
+  }
+
   // ---------- 発表者ビュー本体（別ウィンドウで動く） ----------
 
   function presenterMode(): void {
@@ -404,6 +492,23 @@
     right.appendChild(clock)
     right.appendChild(controls)
     right.appendChild(notesEl)
+
+    // serve のときはリモコン用 QR を手元に出す
+    if (serveCfg) {
+      const qr = div('')
+      qr.style.cssText = 'display:flex;align-items:center;gap:12px;margin-top:4px'
+      const img = div('')
+      img.style.cssText = 'background:#fff;padding:8px;border-radius:8px;width:120px;flex:none'
+      img.innerHTML = serveCfg.qr
+      const s = img.querySelector('svg')
+      if (s) s.setAttribute('style', 'width:100%;height:auto;display:block')
+      const cap = div('')
+      cap.style.cssText = 'font-size:.8rem;color:#9a9aa0;word-break:break-all'
+      cap.textContent = 'スマホで読み取るとリモコン: ' + serveCfg.remoteUrl
+      qr.appendChild(img)
+      qr.appendChild(cap)
+      right.appendChild(qr)
+    }
 
     let curIdx = 0
     let total = slides.length

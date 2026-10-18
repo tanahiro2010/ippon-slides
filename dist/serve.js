@@ -1,0 +1,212 @@
+// `ippon serve`: ゼロ依存のローカルサーバ。スマホを QR で繋いでスライドのリモコンにする。
+//
+//   - GET /?t=TOKEN         発表者が開くデッキ（window.__ippon を注入）
+//   - GET /remote?t=TOKEN   スマホのリモコン画面
+//   - GET /events?t=TOKEN   SSE。state / コマンドを全クライアントへ配信
+//   - POST /cmd?t=TOKEN     コマンド送信（go / timer / state）
+//   - それ以外              Markdown のあるディレクトリから静的配信（画像など）
+//
+// 通信は SSE + fetch POST の小さな pub/sub だけ。WebSocket も外部依存も使わない。
+import { randomUUID } from 'node:crypto';
+import { readFileSync, statSync } from 'node:fs';
+import { createServer } from 'node:http';
+import { networkInterfaces } from 'node:os';
+import { dirname, join, normalize, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { parse } from './markdown.js';
+import { qrSvg } from './qr.js';
+import { render } from './render.js';
+const assets = join(dirname(fileURLToPath(import.meta.url)), '..', 'assets');
+const MIME = {
+    '.html': 'text/html; charset=utf-8',
+    '.js': 'text/javascript; charset=utf-8',
+    '.css': 'text/css; charset=utf-8',
+    '.json': 'application/json; charset=utf-8',
+    '.png': 'image/png',
+    '.jpg': 'image/jpeg',
+    '.jpeg': 'image/jpeg',
+    '.gif': 'image/gif',
+    '.svg': 'image/svg+xml',
+    '.webp': 'image/webp',
+    '.avif': 'image/avif',
+    '.ico': 'image/x-icon',
+};
+function lanIps() {
+    const out = [];
+    const ifs = networkInterfaces();
+    for (const list of Object.values(ifs))
+        for (const ni of list || [])
+            if (ni.family === 'IPv4' && !ni.internal)
+                out.push(ni.address);
+    return out;
+}
+/** </script> 対策で < をエスケープした JSON */
+const safeJson = (v) => JSON.stringify(v).replace(/</g, '\\u003c');
+function remotePage(token, notes, total, title) {
+    const remoteJs = readFileSync(join(assets, 'remote.js'), 'utf8');
+    const config = safeJson({ token, total, notes });
+    return `<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="color-scheme" content="dark">
+<title>${title} — リモコン</title>
+<style>
+:root{--acc:#ff6a00}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:#111;color:#fff;font-family:-apple-system,'Hiragino Sans','Noto Sans JP',system-ui,sans-serif;overscroll-behavior:none}
+#r{display:flex;flex-direction:column;height:100%;padding:env(safe-area-inset-top) 12px calc(12px + env(safe-area-inset-bottom))}
+.top{display:flex;align-items:baseline;gap:12px;padding:12px 4px}
+.pos{font-size:1.1rem;font-variant-numeric:tabular-nums}
+.clock{margin-left:auto;font-size:1.6rem;font-weight:700;font-variant-numeric:tabular-nums}
+.note{flex:1;overflow-y:auto;background:#1b1b1e;border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:14px 16px;font-size:1.1rem;line-height:1.7;-webkit-overflow-scrolling:touch}
+.note .empty{color:#76767c}
+.note h1,.note h2,.note h3{font-size:1.2rem;margin:.4em 0}
+.note strong{color:var(--acc)}
+.pad{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
+button{font:inherit;color:#fff;background:#2a2a2e;border:1px solid rgba(255,255,255,.16);border-radius:14px;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.nav{font-size:2.4rem;padding:26px 0}
+.nav:active{background:var(--acc)}
+.row{display:flex;gap:12px;margin-top:12px}
+.row button{flex:1;padding:14px 0;font-size:1rem}
+.conn{padding:6px 4px;font-size:.8rem;color:#8a8a8a;text-align:center}
+.conn.off{color:#ef5350}
+</style>
+</head>
+<body>
+<div id="r">
+<div class="top"><span class="pos" id="pos">— / —</span><span class="clock" id="clock">0:00</span></div>
+<div class="note" id="note"><p class="empty">（ノートなし）</p></div>
+<div class="pad"><button class="nav" id="prev">◀</button><button class="nav" id="next">▶</button></div>
+<div class="row"><button id="first">⤒ 最初</button><button id="reset">⟲ タイマー</button><button id="last">⤓ 最後</button></div>
+<div class="conn" id="conn">接続中…</div>
+</div>
+<script>window.__ipponRemote=${config}</script>
+<script>${remoteJs}</script>
+</body>
+</html>
+`;
+}
+export async function serve(input, opts = {}) {
+    const md = readFileSync(input, 'utf8');
+    const css = opts.css ? readFileSync(opts.css, 'utf8') : '';
+    const baseDir = dirname(resolve(input));
+    const token = randomUUID();
+    const { meta, notes, sections } = parse(md);
+    const title = meta.title || 'slides';
+    let port = 0;
+    // SSE の購読者と、途中参加に即返す最新 state
+    const clients = new Set();
+    let lastState = null;
+    const broadcast = (payload) => {
+        for (const res of clients)
+            res.write(`data: ${payload}\n\n`);
+    };
+    const server = createServer((req, res) => {
+        try {
+            const url = new URL(req.url || '/', 'http://localhost');
+            const path = decodeURIComponent(url.pathname);
+            const authed = url.searchParams.get('t') === token;
+            // ---- SSE ----
+            if (path === '/events') {
+                if (!authed)
+                    return end(res, 403, 'forbidden');
+                res.writeHead(200, {
+                    'content-type': 'text/event-stream',
+                    'cache-control': 'no-cache, no-transform',
+                    connection: 'keep-alive',
+                });
+                res.write('retry: 2000\n\n');
+                if (lastState)
+                    res.write(`data: ${lastState}\n\n`);
+                clients.add(res);
+                req.on('close', () => clients.delete(res));
+                return;
+            }
+            // ---- コマンド ----
+            if (path === '/cmd' && req.method === 'POST') {
+                if (!authed)
+                    return end(res, 403, 'forbidden');
+                let body = '';
+                req.on('data', (c) => {
+                    body += c;
+                    if (body.length > 1e6)
+                        req.destroy();
+                });
+                req.on('end', () => {
+                    try {
+                        const msg = JSON.parse(body);
+                        if (msg && msg.type === 'state')
+                            lastState = body;
+                        broadcast(body);
+                    }
+                    catch {
+                        /* 壊れた JSON は無視 */
+                    }
+                    end(res, 204, '');
+                });
+                return;
+            }
+            // ---- リモコン画面 ----
+            if (path === '/remote') {
+                if (!authed)
+                    return end(res, 403, 'このページは ippon serve の QR から開いてください');
+                const html = remotePage(token, notes, sections.length, title);
+                return end(res, 200, html, 'text/html; charset=utf-8');
+            }
+            // ---- デッキ本体 ----
+            if (path === '/' || path === '/index.html') {
+                if (!authed)
+                    return end(res, 403, 'このページは ippon serve が表示する URL から開いてください');
+                const ips = lanIps();
+                const remoteUrl = `http://${ips[0] || 'localhost'}:${port}/remote?t=${token}`;
+                const config = `<script>window.__ippon=${safeJson({ token, remoteUrl, qr: qrSvg(remoteUrl, 4) })}</script>\n`;
+                let html = render(md, { baseDir, outDir: baseDir, css }).html;
+                html = html.replace('<script id="notes"', config + '<script id="notes"');
+                return end(res, 200, html, 'text/html; charset=utf-8');
+            }
+            // ---- 静的ファイル（画像など） ----
+            const rel = normalize(path).replace(/^(\.\.(\/|\\|$))+/, '');
+            const file = join(baseDir, rel);
+            if (!file.startsWith(baseDir))
+                return end(res, 403, 'forbidden');
+            try {
+                if (statSync(file).isFile()) {
+                    const ext = (file.match(/\.[^.]+$/)?.[0] || '').toLowerCase();
+                    res.writeHead(200, { 'content-type': MIME[ext] || 'application/octet-stream' });
+                    res.end(readFileSync(file));
+                    return;
+                }
+            }
+            catch {
+                /* 無ければ 404 */
+            }
+            end(res, 404, 'not found');
+        }
+        catch (e) {
+            end(res, 500, e instanceof Error ? e.message : 'error');
+        }
+    });
+    port = await new Promise((res, rej) => {
+        server.on('error', rej);
+        server.listen(opts.port ?? 0, opts.host ?? '0.0.0.0', () => {
+            const addr = server.address();
+            res(typeof addr === 'object' && addr ? addr.port : 0);
+        });
+    });
+    const ips = lanIps();
+    const remoteUrls = (ips.length ? ips : ['localhost']).map((ip) => `http://${ip}:${port}/remote?t=${token}`);
+    return {
+        server,
+        port,
+        token,
+        deckUrl: `http://localhost:${port}/?t=${token}`,
+        remoteUrls,
+        qrSvg: qrSvg(remoteUrls[0], 4),
+    };
+}
+function end(res, status, body, type = 'text/plain; charset=utf-8') {
+    res.writeHead(status, { 'content-type': type });
+    res.end(body);
+}

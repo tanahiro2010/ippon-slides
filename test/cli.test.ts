@@ -21,6 +21,7 @@ test('parseArgs', () => {
     output: 'out',
     css: 'x.css',
   })
+  assert.deepEqual(parseArgs(['serve', 'a.md', '-p', '8080']), { _: ['serve', 'a.md'], port: '8080' })
   assert.throws(() => parseArgs(['--nope']), /不明なオプション/)
   assert.throws(() => parseArgs(['-o']), /値が必要/)
 })
