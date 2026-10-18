@@ -3,6 +3,7 @@
 //   ---                       スライドの区切り
 //   ::center::                1 行目に置くとスライドの指示（center / title / wide / bg=xxx / size=1.5）
 //   ::right::                 ここから右カラム
+//   ::note::                  発表者ノート（この行以降は本番に出ず発表者ビューだけに出る）
 //   -# 注釈                   小さい注釈
 //   ```hcl                    コード（hcl / console / sh / json / js / ts）
 //   !! 行                     コードの行を強調（行頭の "!! " は消える）
@@ -165,6 +166,13 @@ export function slide(src) {
     const classes = ['slide'];
     let style = '';
     let body = src.replace(/^\s+/, '');
+    // 発表者ノート（::note:: 以降。本番スライドには出さない）
+    let notes = '';
+    const noteParts = body.split(/^::note::[ \t]*$/m);
+    if (noteParts.length > 1) {
+        body = noteParts[0];
+        notes = blocks(noteParts.slice(1).join('\n').trim());
+    }
     const d = body.match(/^::([^:]+)::[ \t]*(\n|$)/);
     const tokens = d ? d[1].trim().split(/\s+/) : [];
     if (d && tokens.every((t) => DIRECTIVES.test(t))) {
@@ -198,7 +206,7 @@ export function slide(src) {
     else {
         html = blocks(body);
     }
-    return `<section class="${classes.join(' ')}"${style ? ` style="${style}"` : ''}>${html}</section>`;
+    return `<section class="${classes.join(' ')}"${style ? ` style="${style}"` : ''}>${html}${notes ? `<aside class="notes">${notes}</aside>` : ''}</section>`;
 }
 export function frontmatter(md) {
     const m = md.replace(/^\uFEFF/, '').match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n/);

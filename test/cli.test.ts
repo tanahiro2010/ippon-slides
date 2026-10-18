@@ -46,6 +46,8 @@ test('init → build --html', () => {
   const html = readFileSync(join(dir, 'slide.html'), 'utf8')
   assert.match(html, /<title>はじめての ippon<\/title>/)
   assert.equal(html.match(/<section /g)?.length, 9)
+  // 発表者ノートは埋め込まれるが、スライドの枚数は増えない
+  assert.match(html, /<aside class="notes">/)
 })
 
 test('画像の相対パスは出力先から見たパスに書き換える', () => {

@@ -39,10 +39,11 @@ ${meta.description ? `<meta name="description" content="${esc(meta.description)}
 ${body}
 </div>
 <div id="overview"></div>
+<div id="presenter"></div>
 <div id="progress"></div>
 <div id="timer"></div>
 <div id="counter"></div>
-<div id="hint">← → 移動 ・ f フルスクリーン ・ o 一覧</div>
+<div id="hint">← → 移動 ・ f フルスクリーン ・ o 一覧 ・ p 発表者</div>
 <script>${script}</script>
 </body>
 </html>

@@ -4,11 +4,29 @@
 //   Home / End                              最初 / 最後
 //   f                                       フルスクリーン
 //   o / Esc                                 一覧
+//   p                                       発表者ビュー（別ウィンドウ）
 (() => {
   const slides = Array.from(document.querySelectorAll<HTMLElement>('#deck .slide'))
   if (!slides.length) return
 
   const $ = (id: string) => document.getElementById(id)!
+  const div = (className: string) => {
+    const el = document.createElement('div')
+    el.className = className
+    return el
+  }
+  function fmt(ms: number): string {
+    const total = Math.floor(ms / 1000)
+    const m = Math.floor(total / 60)
+    const s = total % 60
+    return m + ':' + (s < 10 ? '0' : '') + s
+  }
+
+  // 別ウィンドウで開いたときは発表者ビューとして動く（本番のナビは動かさない）
+  if (window.name === 'ippon-presenter') {
+    presenterMode()
+    return
+  }
 
   let idx = 0
   const progress = $('progress')
@@ -21,12 +39,6 @@
 
   let startedAt: number | null = null
   let ticking: number | undefined
-  function fmt(ms: number): string {
-    const total = Math.floor(ms / 1000)
-    const m = Math.floor(total / 60)
-    const s = total % 60
-    return m + ':' + (s < 10 ? '0' : '') + s
-  }
   function syncTimer(): void {
     if (idx === 0) {
       startedAt = null
@@ -50,6 +62,7 @@
     counter.textContent = idx + 1 + ' / ' + slides.length
     progress.style.width = ((idx + 1) / slides.length) * 100 + '%'
     syncTimer()
+    broadcast()
   }
   function go(n: number): void {
     n = clamp(n)
@@ -61,6 +74,27 @@
   window.addEventListener('hashchange', () => {
     const n = parseInt(location.hash.slice(1), 10)
     if (n) go(n - 1)
+  })
+
+  // ---------- 発表者ビュー（別ウィンドウ）との同期 ----------
+
+  let presenterWin: Window | null = null
+  function openPresenter(): void {
+    if (presenterWin && !presenterWin.closed) {
+      presenterWin.focus()
+      return
+    }
+    presenterWin = window.open(location.href, 'ippon-presenter', 'width=1024,height=700')
+  }
+  function broadcast(): void {
+    if (presenterWin && !presenterWin.closed)
+      presenterWin.postMessage({ ippon: 'state', idx, total: slides.length, startedAt }, '*')
+  }
+  window.addEventListener('message', (e) => {
+    const m = e.data as { ippon?: string; n?: number } | null
+    if (!m || typeof m !== 'object') return
+    if (m.ippon === 'hello') broadcast()
+    else if (m.ippon === 'go' && typeof m.n === 'number') go(m.n)
   })
 
   // ---------- 一覧 ----------
@@ -75,12 +109,6 @@
   let ovItems: Thumb[] | null = null
   let ovOpen = false
   const THUMB = 240
-
-  const div = (className: string) => {
-    const el = document.createElement('div')
-    el.className = className
-    return el
-  }
 
   function buildOverview(): Thumb[] {
     return slides.map((s, i) => {
@@ -166,6 +194,9 @@
       case 'o':
         openOverview()
         break
+      case 'p':
+        openPresenter()
+        break
       case 'Escape':
         if (!document.fullscreenElement) openOverview()
         break
@@ -208,4 +239,136 @@
   const start = parseInt(location.hash.slice(1), 10)
   if (start) idx = clamp(start - 1)
   render()
+
+  // ---------- 発表者ビュー本体（別ウィンドウで動く） ----------
+
+  function presenterMode(): void {
+    document.body.classList.add('presenter')
+    const root = $('presenter')
+
+    const left = div('pv-left')
+    const right = div('pv-right')
+    root.appendChild(left)
+    root.appendChild(right)
+
+    const makeSlot = (labelText: string) => {
+      const slot = div('pv-slot')
+      const label = div('pv-label')
+      label.textContent = labelText
+      const frame = div('pv-frame')
+      const scale = div('pv-scale')
+      frame.appendChild(scale)
+      slot.appendChild(label)
+      slot.appendChild(frame)
+      left.appendChild(slot)
+      return { label, frame, scale }
+    }
+    const cur = makeSlot('現在')
+    const nxt = makeSlot('次へ')
+
+    const clock = div('pv-clock')
+    const elapsedEl = div('pv-elapsed')
+    const wallEl = div('pv-wall')
+    clock.appendChild(elapsedEl)
+    clock.appendChild(wallEl)
+
+    const controls = div('pv-controls')
+    const prevBtn = document.createElement('button')
+    prevBtn.textContent = '◀'
+    const nextBtn = document.createElement('button')
+    nextBtn.textContent = '▶'
+    controls.appendChild(prevBtn)
+    controls.appendChild(nextBtn)
+
+    const notesEl = div('pv-notes')
+    right.appendChild(clock)
+    right.appendChild(controls)
+    right.appendChild(notesEl)
+
+    let curIdx = 0
+    let total = slides.length
+    let startedAt: number | null = null
+
+    function fitPreview(frame: HTMLElement, scale: HTMLElement): void {
+      const w = window.innerWidth
+      const h = window.innerHeight
+      const fw = frame.clientWidth
+      const k = fw / w
+      frame.style.height = fw * (h / w) + 'px'
+      scale.style.width = w + 'px'
+      scale.style.height = h + 'px'
+      scale.style.transform = 'scale(' + k + ')'
+    }
+    function setPreview(frame: HTMLElement, scale: HTMLElement, i: number): void {
+      scale.textContent = ''
+      const s = slides[i]
+      if (s) scale.appendChild(s.cloneNode(true))
+      fitPreview(frame, scale)
+    }
+    function draw(): void {
+      cur.label.textContent = '現在  ' + (curIdx + 1) + ' / ' + total
+      setPreview(cur.frame, cur.scale, curIdx)
+      const hasNext = curIdx + 1 < total
+      nxt.label.textContent = hasNext ? '次へ  ' + (curIdx + 2) + ' / ' + total : 'おわり'
+      setPreview(nxt.frame, nxt.scale, hasNext ? curIdx + 1 : -1)
+      const note = slides[curIdx]?.querySelector('.notes')
+      notesEl.innerHTML = note ? note.innerHTML : '<p class="pv-empty">（ノートなし）</p>'
+    }
+    function tick(): void {
+      elapsedEl.textContent = startedAt == null ? '0:00' : fmt(Date.now() - startedAt)
+      wallEl.textContent = new Date().toLocaleTimeString()
+    }
+
+    const send = (n: number) => {
+      if (window.opener) window.opener.postMessage({ ippon: 'go', n }, '*')
+    }
+    prevBtn.addEventListener('click', () => send(curIdx - 1))
+    nextBtn.addEventListener('click', () => send(curIdx + 1))
+
+    window.addEventListener('message', (e) => {
+      const m = e.data as { ippon?: string; idx?: number; total?: number; startedAt?: number | null } | null
+      if (!m || m.ippon !== 'state') return
+      if (typeof m.idx === 'number') curIdx = m.idx
+      if (typeof m.total === 'number') total = m.total
+      startedAt = m.startedAt ?? null
+      draw()
+      tick()
+    })
+    document.addEventListener('keydown', (e) => {
+      if (e.metaKey || e.ctrlKey || e.altKey) return
+      switch (e.key) {
+        case 'ArrowRight':
+        case 'PageDown':
+        case ' ':
+          e.preventDefault()
+          send(curIdx + 1)
+          break
+        case 'ArrowLeft':
+        case 'PageUp':
+          e.preventDefault()
+          send(curIdx - 1)
+          break
+        case 'Home':
+          send(0)
+          break
+        case 'End':
+          send(total - 1)
+          break
+        case 'p':
+        case 'Escape':
+          window.close()
+          break
+      }
+    })
+    window.addEventListener('resize', () => {
+      fitPreview(cur.frame, cur.scale)
+      fitPreview(nxt.frame, nxt.scale)
+    })
+    window.setInterval(tick, 500)
+
+    // 本番ウィンドウに現在の状態を要求する
+    if (window.opener) window.opener.postMessage({ ippon: 'hello' }, '*')
+    draw()
+    tick()
+  }
 })()

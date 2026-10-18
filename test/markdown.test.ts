@@ -40,6 +40,19 @@ test('-# は注釈', () => {
   assert.match(s, /<p class="note">small<\/p>/)
 })
 
+test('::note:: 以降は発表者ノート（本番には出ない）', () => {
+  const [s = ''] = parse('hello\n\n::note::\n\nメモ\n').sections
+  assert.match(s, /<p>hello<\/p><aside class="notes"><p>メモ<\/p><\/aside><\/section>$/)
+  assert.doesNotMatch(s, /::/)
+})
+
+test('::note:: と ::right:: は共存できる', () => {
+  const [s = ''] = parse('- a\n\n::right::\n\nb\n\n::note::\n\nメモ\n').sections
+  assert.match(s, /<div class="cols">/)
+  assert.match(s, /<aside class="notes"><p>メモ<\/p><\/aside><\/section>$/)
+  assert.doesNotMatch(s, /::/)
+})
+
 test('入れ子のリスト', () => {
   const [s = ''] = parse('- a\n  - b\n- c\n').sections
   assert.match(s, /<ul><li>a<ul><li>b<\/li><\/ul><\/li><li>c<\/li><\/ul>/)
