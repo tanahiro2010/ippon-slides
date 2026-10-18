@@ -91,6 +91,7 @@ const app = new Hono()
 | `::bg=blue::` | 背景色。`blue` / `orange` / `purple` / `red` / `green` / `black` / `white`、または `#rrggbb` |
 | `::size=1.5::` | 文字サイズの倍率 |
 | `::right::` | ここから右カラム。先頭の見出しはカラムの上に出る |
+| `::right left-wide::` / `::right right-wide::` | カラム幅を 1.4:1 / 1:1.4 にする |
 | `::note::` | この行以降は発表者ノート。本番には出ず発表者ビュー（`p`）だけに出る |
 | `-# 注釈` | 小さい注釈 |
 | ` ```hcl ` | コード。`hcl` / `console` / `sh` / `json` / `js` / `ts` をハイライト |
@@ -126,11 +127,14 @@ URL の `#12` で 12 枚目から開けます。
 
 ```css
 :root {
-  --slide-accent: #7b42bc;   /* 進捗バー */
+  --slide-accent: #ff6a00;   /* 進捗バー・一覧の枠 */
   --slide-accent-2: #ff6a00; /* 太字・強調 */
   --slide-display-font: 'Hiragino Sans', sans-serif;
 }
 ```
+
+見出しは `--slide-display-font`（既定で凸版文久見出しゴシック、未インストール環境は
+本文フォントに落ちる）、本文は Noto Sans JP（Web フォントを読み込み）で表示されます。
 
 ## ライブラリとして使う
 

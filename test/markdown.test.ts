@@ -35,6 +35,12 @@ test('::right:: で 2 カラム、先頭の見出しはカラムの外', () => {
   assert.match(s, /^<section class="slide"><h2>見出し<\/h2><div class="cols"><div><ul><li>a<\/li><\/ul><\/div><div><p>b<\/p><\/div><\/div>/)
 })
 
+test('::right right-wide:: でカラム幅を変える', () => {
+  const [s = ''] = parse('- a\n\n::right right-wide::\n\nb\n').sections
+  assert.match(s, /<div class="cols right-wide"><div><ul><li>a<\/li><\/ul><\/div><div><p>b<\/p><\/div><\/div>/)
+  assert.doesNotMatch(s, /::/)
+})
+
 test('-# は注釈', () => {
   const [s = ''] = parse('-# small\n').sections
   assert.match(s, /<p class="note">small<\/p>/)

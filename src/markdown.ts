@@ -2,7 +2,7 @@
 //
 //   ---                       スライドの区切り
 //   ::center::                1 行目に置くとスライドの指示（center / title / wide / bg=xxx / size=1.5）
-//   ::right::                 ここから右カラム
+//   ::right::                 ここから右カラム（left-wide / right-wide で幅を 1.4:1 / 1:1.4 に）
 //   ::note::                  発表者ノート（この行以降は本番に出ず発表者ビューだけに出る）
 //   -# 注釈                   小さい注釈
 //   ```hcl                    コード（hcl / console / sh / json / js / ts）
@@ -227,15 +227,17 @@ export function slide(src: string): string {
   }
 
   let html: string
-  const parts = body.split(/^::right::[ \t]*$/m)
-  if (parts.length === 2) {
-    const [first, right] = parts as [string, string]
+  // ::right::（1:1）/ ::right left-wide::（1.4:1）/ ::right right-wide::（1:1.4）
+  const parts = body.split(/^::right(?:[ \t]+(left-wide|right-wide))?::[ \t]*$/m)
+  if (parts.length === 3) {
+    const [first, mod, right] = parts as [string, string | undefined, string]
     // 先頭の見出しはカラムの外（上）に出す
     const head = first.match(/^\s*(#{1,3} .*)\n/)
     const left = head ? first.replace(head[0], '') : first
+    const cls = mod ? `cols ${mod}` : 'cols'
     html =
       (head ? blocks(head[1]!) : '') +
-      `<div class="cols"><div>${blocks(left)}</div><div>${blocks(right)}</div></div>`
+      `<div class="${cls}"><div>${blocks(left)}</div><div>${blocks(right)}</div></div>`
   } else {
     html = blocks(body)
   }

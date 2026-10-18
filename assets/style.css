@@ -1,7 +1,7 @@
 :root {
   --slide-bg: #000;
   --slide-fg: #fff;
-  --slide-accent: #7b42bc; /* Terraform purple */
+  --slide-accent: #ff6a00;
   --slide-accent-2: #ff6a00;
   --slide-muted: #8a8a8a;
   --slide-code-bg: #0d0d0d;
@@ -151,6 +151,12 @@ body {
   gap: 4vw;
   align-items: start;
   width: 100%;
+}
+.slide .cols.left-wide {
+  grid-template-columns: 1.4fr 1fr;
+}
+.slide .cols.right-wide {
+  grid-template-columns: 1fr 1.4fr;
 }
 .slide .cols > * > :first-child {
   margin-top: 0;
@@ -353,6 +359,39 @@ body {
   box-sizing: border-box;
   background: rgba(255, 106, 0, 0.16);
   box-shadow: inset 3px 0 0 var(--slide-accent-2);
+}
+
+/* コードブロック右上のコピーボタン（deck.js が付ける） */
+.copy-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 0.25em 0.7em;
+  font: inherit;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: #ddd;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  cursor: pointer;
+  opacity: 0;
+  transition:
+    opacity 0.15s ease,
+    background 0.15s ease;
+}
+.slide pre:hover .copy-btn,
+.copy-btn:focus-visible {
+  opacity: 1;
+}
+.copy-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+.copy-btn.copied {
+  color: #fff;
+  background: var(--slide-accent);
+  border-color: var(--slide-accent);
+  opacity: 1;
 }
 
 /* ---------- chrome ---------- */
@@ -635,7 +674,8 @@ body.presenter #overview {
   #timer,
   #hint,
   #overview,
-  #presenter {
+  #presenter,
+  .copy-btn {
     display: none !important;
   }
 }

@@ -31,11 +31,11 @@ Pipeline: `cli.ts` → `render.ts` → `markdown.ts` → `highlight.ts`, plus `p
 
 - **`markdown.ts`** is a hand-written, line-based Markdown subset parser. `parse()` reads the frontmatter (a simple `key: value` subset of YAML). It then splits the body into slides on `---` (ignoring `---` inside code fences) and renders each slide into a `<section class="slide ...">`. It also handles the slide-specific syntax:
   - A first line like `::center bg=blue size=2::` is a directive line. It only counts when every token matches `DIRECTIVES`; otherwise it's a normal paragraph.
-  - `::right::` splits the slide into two columns. A leading heading is lifted above the columns.
+  - `::right::` splits the slide into two columns. A leading heading is lifted above the columns. An optional `left-wide` / `right-wide` keyword (`::right right-wide::`) changes the 1:1 ratio to 1.4:1 / 1:1.4.
   - `-# ` marks a small note.
   - `!! ` at the start of a line inside a code block highlights that line.
 - **`highlight.ts`** is a per-line regex tokenizer. Each language is a `Rule[]` table and `LANGS` maps aliases to tables. Tokens never span lines. `console` has its own handling: `$ ` lines are commands, `Error` lines are errors. Add a language by adding a rule table and its aliases.
-- **`render.ts`** wraps the sections in the HTML template. At runtime it reads `assets/style.css` and `assets/deck.js` via `../assets` relative to the module, a path that works from both `src/` and `dist/`. It also rewrites relative `<img src>` paths:
+- **`render.ts`** wraps the sections in the HTML template. At runtime it reads `assets/style.css` and `assets/deck.js` via `../assets` relative to the module, a path that works from both `src/` and `dist/`. The `<head>` also links the Noto Sans JP webfont from Google Fonts so the body font matches on non-Apple platforms (headings use `--slide-display-font`, which falls back to the body font when the display face is absent). It also rewrites relative `<img src>` paths:
   - With `outDir` given (HTML output), paths become relative to the output directory.
   - Without `outDir` (PDF output), paths become absolute `file://` URLs, because the PDF is printed from a temporary HTML file.
 - **`pdf.ts`** finds a browser in this order: `--browser-path`, then `CHROME_PATH`, then per-platform candidates. It runs `--headless=new --print-to-pdf` with a temporary profile and `--virtual-time-budget` so web fonts have time to load.
@@ -45,7 +45,7 @@ Pipeline: `cli.ts` → `render.ts` → `markdown.ts` → `highlight.ts`, plus `p
   - `ippon slide.md` is shorthand for `ippon build slide.md`.
   - `init` writes the `SAMPLE` deck. The CLI test expects it to produce exactly 9 slides, so update the test if you change the sample.
   - Watch mode watches the parent directories, not the files, because some editors save by replacing the file.
-- **`assets/style.css`** holds the deck's look. Users override its CSS variables (`--slide-accent`, `--slide-accent-2`, `--slide-display-font`, `--slide-size`) through `--css`. `deck.ts` handles keyboard, click, and swipe navigation, the `#N` URL hash, the overview grid (`o`), and the timer, which starts after leaving the title slide.
+- **`assets/style.css`** holds the deck's look. Users override its CSS variables (`--slide-accent`, `--slide-accent-2`, `--slide-display-font`, `--slide-size`) through `--css`. `deck.ts` handles keyboard, click, and swipe navigation, the `#N` URL hash, the overview grid (`o`), copy buttons on code blocks, the timer (which starts after leaving the title slide), and the presenter view (`p`): a second window (`window.name === 'ippon-presenter'`) that shows the current/next slide, `::note::` notes, and a timer, kept in sync with the main window via `postMessage`.
 
 ## Conventions
 

@@ -236,6 +236,42 @@
     { passive: true }
   )
 
+  // コードブロックの右上にコピーボタンを付ける
+  slides.forEach((s) => {
+    s.querySelectorAll('pre').forEach((pre) => {
+      const code = pre.querySelector<HTMLElement>('code') || pre
+      const btn = document.createElement('button')
+      btn.type = 'button'
+      btn.className = 'copy-btn'
+      btn.textContent = 'Copy'
+      btn.addEventListener('click', () => {
+        const text = code.innerText
+        const done = () => {
+          btn.textContent = 'Copied!'
+          btn.classList.add('copied')
+          window.setTimeout(() => {
+            btn.textContent = 'Copy'
+            btn.classList.remove('copied')
+          }, 1200)
+        }
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(done, done)
+        } else {
+          const ta = document.createElement('textarea')
+          ta.value = text
+          document.body.appendChild(ta)
+          ta.select()
+          try {
+            document.execCommand('copy')
+          } catch {}
+          document.body.removeChild(ta)
+          done()
+        }
+      })
+      pre.appendChild(btn)
+    })
+  })
+
   const start = parseInt(location.hash.slice(1), 10)
   if (start) idx = clamp(start - 1)
   render()
