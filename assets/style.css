@@ -219,7 +219,8 @@ body {
   font-weight: 600;
   margin: 0.2em 0;
 }
-.slide.title p:last-child {
+/* 末尾に ::note:: の <aside>（display:none）が付いても効くよう last-of-type */
+.slide.title p:last-of-type {
   margin-top: auto;
   font-size: clamp(1rem, 1.8vw, 1.3rem);
   color: var(--slide-muted);
