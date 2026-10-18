@@ -104,7 +104,7 @@
 </header>
 
 <main>
-<section class="hero" style="border-bottom:none">
+<section class="hero">
   <div class="wrap">
     <h1>1 枚に、<br>1 メッセージ。</h1>
     <p class="lede">ippon は Markdown を「1 枚 1 メッセージ」のスライドに変換します。CSS/JS 全部入りの単一 HTML、そして 16:9 の PDF。ゼロ依存。ずっとあなたのもの。</p>
@@ -123,7 +123,7 @@
       <p class="sub">名前の <strong>ippon（一本）</strong> は柔道で勝負を決める一本から。1 枚で 1 つのメッセージを決める。巧さは装飾ではなく<strong>引き算</strong>にあります。箇条書きが溢れたら、それはフォントを縮めるのではなくスライドを分ける合図です。</p>
     </div>
     <div>
-      <p class="lead-quote accent">迷ったら、足すのではなく削る。スライドからも、この道具からも。</p>
+      <p class="lead-quote">迷ったら、足すのではなく削る。スライドからも、この道具からも。</p>
       <p class="muted">クラウドなし。専用ビューアなし。ランタイム依存なし。デッキはただの HTML ファイルで、どの端末でも、何年後でも開けます。</p>
     </div>
   </div>
@@ -134,14 +134,14 @@
     <h2>全部、1 ファイルに</h2>
     <p class="sub">厳選した機能だけ。ひとつひとつが居場所を持っています。</p>
     <div class="grid">
-      <div class="card"><div class="ico">📄</div><h3>単一の自己完結 HTML</h3><p>CSS も JS もインライン。メールでも Git でもオフラインでも開ける 1 ファイル。ビルドサーバも CDN も不要。</p></div>
-      <div class="card"><div class="ico">🧩</div><h3>ランタイム依存ゼロ</h3><p>ビルドに使うのは TypeScript だけ。PDF 出力はブラウザを同梱せずローカルの Chrome を直接駆動。</p></div>
-      <div class="card"><div class="ico">🖨️</div><h3>16:9 PDF 出力</h3><p><code>--pdf</code> でフォントも色もそのままの 16:9 PDF を生成。</p></div>
-      <div class="card"><div class="ico">📱</div><h3>スマホがリモコン</h3><p><code>ippon serve</code> が QR を表示。読み取ればページ送り・タイマー・発表者ノートを手元で。LAN 上で動き WebSocket 不要。</p></div>
-      <div class="card"><div class="ico">🌐</div><h3>HTTP プレイグラウンド</h3><p><code>::http::</code> で実レスポンス（ステータス・時間・ヘッダー・整形 JSON）をビルド時に焼き込み（CORS 無関係）＋ライブ再送信。</p></div>
-      <div class="card"><div class="ico">🔍</div><h3>拡大とスポットライト</h3><p>画像やコードをクリックで拡大。行をクリックすると周囲が暗くなり 1 行だけ強調。コード解説に最適。</p></div>
-      <div class="card"><div class="ico">🧑‍🏫</div><h3>発表者ビュー</h3><p><code>p</code> で現在・次のスライド、発表者ノート、タイマーを別ウィンドウに。両画面は同期。</p></div>
-      <div class="card"><div class="ico">🎨</div><h3>テーマ変更</h3><p><code>--css</code> で少数の CSS 変数を上書き。既定のままですぐ発表に臨めます。</p></div>
+      <div class="item"><h3>単一の自己完結 HTML</h3><p>CSS も JS もインライン。メールでも Git でもオフラインでも開ける 1 ファイル。ビルドサーバも CDN も不要。</p></div>
+      <div class="item"><h3>ランタイム依存ゼロ</h3><p>ビルドに使うのは TypeScript だけ。PDF 出力はブラウザを同梱せずローカルの Chrome を直接駆動。</p></div>
+      <div class="item"><h3>16:9 PDF 出力</h3><p><code>--pdf</code> でフォントも色もそのままの 16:9 PDF を生成。</p></div>
+      <div class="item"><h3>スマホがリモコン</h3><p><code>ippon serve</code> が QR を表示。読み取ればページ送り・タイマー・発表者ノートを手元で。LAN 上で動き WebSocket 不要。</p></div>
+      <div class="item"><h3>HTTP プレイグラウンド</h3><p><code>::http::</code> で実レスポンス（ステータス・時間・ヘッダー・整形 JSON）をビルド時に焼き込み（CORS 無関係）＋ライブ再送信。</p></div>
+      <div class="item"><h3>拡大とスポットライト</h3><p>画像やコードをクリックで拡大。行をクリックすると周囲が暗くなり 1 行だけ強調。コード解説に最適。</p></div>
+      <div class="item"><h3>発表者ビュー</h3><p><code>p</code> で現在・次のスライド、発表者ノート、タイマーを別ウィンドウに。両画面は同期。</p></div>
+      <div class="item"><h3>テーマ変更</h3><p><code>--css</code> で少数の CSS 変数を上書き。既定のままですぐ発表に臨めます。</p></div>
     </div>
   </div>
 </section>
@@ -151,8 +151,8 @@
     <h2>はじめに</h2>
     <p class="sub">インストール不要。<code>npx</code> でその場で実行（Node.js 18.17+）。</p>
     <div class="cols">
-      <div>
-        <h3>1 · 作って、ビルド</h3>
+      <div class="step">
+        <h3><span class="n">01</span>作って、ビルド</h3>
         <pre><span class="c"># サンプルを作る</span>
 npx ippon-slides <span class="a">init</span>
 
@@ -162,8 +162,8 @@ npx ippon-slides <span class="a">build</span> slide.md --html
 <span class="c"># 16:9 PDF も</span>
 npx ippon-slides build slide.md --pdf</pre>
       </div>
-      <div>
-        <h3>2 · 1 枚 1 メッセージで書く</h3>
+      <div class="step">
+        <h3><span class="n">02</span>1 枚 1 メッセージで書く</h3>
 <pre><span class="k">::title::</span>
 
 <span class="k">#</span> はじめての ippon

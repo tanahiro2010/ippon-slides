@@ -110,7 +110,7 @@
 </header>
 
 <main>
-<section class="hero" style="border-bottom:none">
+<section class="hero">
   <div class="wrap">
     <h1>One message per&nbsp;slide.</h1>
     <p class="lede">ippon turns Markdown into a one-message-per-slide deck — a single self-contained HTML file, and a 16:9 PDF. Zero dependencies. Yours forever.</p>
@@ -129,7 +129,7 @@
       <p class="sub">Named after <strong>ippon</strong> — the single decisive point in judo. One slide, one message. The craft is in subtraction, not decoration: if a bullet list is overflowing, that is a sign to split the slide, not to shrink the font.</p>
     </div>
     <div>
-      <p class="lead-quote accent">When in doubt, remove — from the slide, and from the tool.</p>
+      <p class="lead-quote">When in doubt, remove — from the slide, and from the tool.</p>
       <p class="muted">No cloud. No proprietary viewer. No runtime dependencies. Your deck is a plain HTML file that opens in any browser, on any machine, for years.</p>
     </div>
   </div>
@@ -140,14 +140,14 @@
     <h2>Everything, in one file</h2>
     <p class="sub">A focused feature set — each one earns its place.</p>
     <div class="grid">
-      <div class="card"><div class="ico">📄</div><h3>Single self-contained HTML</h3><p>CSS and JS are inlined. One file you can email, commit, or open offline — no build server, no CDN.</p></div>
-      <div class="card"><div class="ico">🧩</div><h3>Zero runtime dependencies</h3><p>Only TypeScript is used to build it. PDF export drives a local Chrome directly instead of bundling a browser.</p></div>
-      <div class="card"><div class="ico">🖨️</div><h3>16:9 PDF export</h3><p><code>--pdf</code> renders a crisp 16:9 PDF from your deck, fonts and colors intact.</p></div>
-      <div class="card"><div class="ico">📱</div><h3>Phone remote</h3><p><code>ippon serve</code> shows a QR code. Scan it to advance slides, reset the timer and read speaker notes — over your LAN, no WebSocket.</p></div>
-      <div class="card"><div class="ico">🌐</div><h3>Live HTTP playground</h3><p><code>::http::</code> embeds a real request/response — status, time, headers, pretty JSON — baked at build time (CORS-free) with a live re-send button.</p></div>
-      <div class="card"><div class="ico">🔍</div><h3>Spotlight &amp; zoom</h3><p>Click an image or a code block to zoom. Click a line to spotlight it while the rest dims — perfect for walking through code.</p></div>
-      <div class="card"><div class="ico">🧑‍🏫</div><h3>Presenter view</h3><p>Press <code>p</code> for current &amp; next slide, speaker notes and a timer in a second window, kept in sync.</p></div>
-      <div class="card"><div class="ico">🎨</div><h3>Themeable</h3><p>Override a few CSS variables with <code>--css</code>. Start with sensible defaults and present immediately.</p></div>
+      <div class="item"><h3>Single self-contained HTML</h3><p>CSS and JS are inlined. One file you can email, commit, or open offline — no build server, no CDN.</p></div>
+      <div class="item"><h3>Zero runtime dependencies</h3><p>Only TypeScript is used to build it. PDF export drives a local Chrome directly instead of bundling a browser.</p></div>
+      <div class="item"><h3>16:9 PDF export</h3><p><code>--pdf</code> renders a crisp 16:9 PDF from your deck, fonts and colors intact.</p></div>
+      <div class="item"><h3>Phone remote</h3><p><code>ippon serve</code> shows a QR code. Scan it to advance slides, reset the timer and read speaker notes — over your LAN, no WebSocket.</p></div>
+      <div class="item"><h3>Live HTTP playground</h3><p><code>::http::</code> embeds a real request and response — status, time, headers, pretty JSON — baked at build time (CORS-free) with a live re-send button.</p></div>
+      <div class="item"><h3>Spotlight and zoom</h3><p>Click an image or a code block to zoom. Click a line to spotlight it while the rest dims — made for walking through code.</p></div>
+      <div class="item"><h3>Presenter view</h3><p>Press <code>p</code> for current and next slide, speaker notes and a timer in a second window, kept in sync.</p></div>
+      <div class="item"><h3>Themeable</h3><p>Override a few CSS variables with <code>--css</code>. Start with sensible defaults and present immediately.</p></div>
     </div>
   </div>
 </section>
@@ -157,8 +157,8 @@
     <h2>Quick start</h2>
     <p class="sub">No install required — <code>npx</code> runs it on demand. Needs Node.js 18.17+.</p>
     <div class="cols">
-      <div>
-        <h3>1 · Create &amp; build</h3>
+      <div class="step">
+        <h3><span class="n">01</span>Create and build</h3>
         <pre><span class="c"># create a sample deck</span>
 npx ippon-slides <span class="a">init</span>
 
@@ -168,8 +168,8 @@ npx ippon-slides <span class="a">build</span> slide.md --html
 <span class="c"># ...and a 16:9 PDF</span>
 npx ippon-slides build slide.md --pdf</pre>
       </div>
-      <div>
-        <h3>2 · Write one message per slide</h3>
+      <div class="step">
+        <h3><span class="n">02</span>Write one message per slide</h3>
 <pre><span class="k">::title::</span>
 
 <span class="k">#</span> Hello, ippon
