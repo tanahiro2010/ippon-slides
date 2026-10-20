@@ -3,7 +3,7 @@
 # npm への publish は Trusted Publishing（OIDC）を使うのでトークン不要。
 # 事前に npmjs.com のパッケージ設定で Trusted Publisher を登録しておくこと:
 #   Settings → Trusted Publisher → GitHub Actions
-#   Repository: under18/ippon-slides / Workflow: release.yml
+#   Repository: under18dev/ippon-slides / Workflow: release.yml
 name: Release
 
 on:
