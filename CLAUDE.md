@@ -44,7 +44,7 @@ cd site && npm ci && npm run build # → site/dist/  (npm run dev for a dev serv
 - Relative imports use the **`.ts` extension** (`import { esc } from './highlight.ts'`). `rewriteRelativeImportExtensions` turns them into `.js` in `dist/`. Code must stay type-strip compatible because `erasableSyntaxOnly` is on: no enums, no parameter properties, no namespaces.
 - `strict` and `noUncheckedIndexedAccess` are on. Regex match groups and array indexing return `T | undefined`, and the code uses `!` where a match guarantees presence.
 - `src/client/deck.ts` and `src/client/remote.ts` are **browser scripts**, not modules (`moduleDetection: "legacy"`, DOM lib). They are excluded from the main tsconfig and share `src/client/tsconfig.json`. They compile to `assets/deck.js` / `assets/remote.js`, which are gitignored and generated. Don't add imports or exports to them.
-- `dist/` and `assets/deck.js` are build outputs. `prepack` runs the build before publishing.
+- `dist/` and `assets/deck.js` are build outputs. `prepare` runs the build before publishing and when the package is installed from GitHub (`npm i github:under18dev/ippon-slides`).
 
 ## Architecture
 
